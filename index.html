@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Sandpainter</title>
-  <meta name="description" content="A falling-sand painting toy: four spigots, thirty elements, fire, ice, plants and explosives. A modern take on the classic sand painting game." />
+  <meta name="description" content="A falling-sand painting toy: four spigots, 26 elements, fire, ice, plants and explosives. A modern take on the classic sand painting game." />
   <meta name="color-scheme" content="dark light" />
   <meta name="theme-color" content="#0e0d0b" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,6 +63,7 @@
         </tbody>
       </table>
       <p class="fine">Things to try: pour oil on water, then touch it with fire. Drop a seed on soil you have watered. Put a clone block in a stream. Light a fuse that runs to C-4.</p>
+      <p class="fine"><a href="Element-Guide.html" target="_blank" rel="noopener">Open the element guide</a>: every element, and what it does to the others.</p>
       <button class="btn wide" value="close">Back to painting</button>
     </form>
   </dialog>
@@ -83,6 +84,14 @@
   <script type="module" src="src/main.js"></script>
   <script>
     document.getElementById('helpBtn').addEventListener('click', () => document.getElementById('help').showModal());
+  </script>
+  <script id="file-warning">
+    if (location.protocol === 'file:') {
+      const note = document.createElement('p');
+      note.style.cssText = 'margin:0;padding:12px 16px;background:var(--amber);color:#0e0d0b;font:600 15px/1.4 var(--font-mono);text-align:center';
+      note.innerHTML = 'This copy needs a web server. To play by double-clicking, open <b>Sandpainter.html</b> (same folder) instead.';
+      document.body.prepend(note);
+    }
   </script>
 </body>
 </html>

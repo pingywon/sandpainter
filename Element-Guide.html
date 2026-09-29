@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sandpainter Element Guide</title>
+  <meta name="description" content="Every element in Sandpainter: what it does, its colours, and what happens when it meets the others." />
+  <meta name="color-scheme" content="dark light" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e0d0b'/%3E%3Cpath d='M6 26h20v-3H6zM8 21h16v-3H8zM11 16h10v-3H11zM14 11h4V6h-4z' fill='%23f5a524'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #0e0d0b;
+      --panel: #181613;
+      --panel-2: #211e1a;
+      --line: #2f2b25;
+      --text: #ece6da;
+      --muted: #a39a8a;
+      --amber: #f5a524;
+      --hot: #ff7a3c;
+      --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+      --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f3eee4;
+        --panel: #fbf8f2;
+        --panel-2: #efe8db;
+        --line: #d9cfbd;
+        --text: #221e18;
+        --muted: #6b6152;
+        --amber: #b86e00;
+        --hot: #c2410c;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.55 var(--font-body);
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 16px 80px; }
+    header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 8px; }
+    .wordmark { font: 400 40px/1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
+    .wordmark em { color: var(--amber); font-weight: 300; }
+    .kicker { font: 600 13px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .lede { font-size: 20px; max-width: 720px; margin: 8px 0 24px; }
+    nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 40px; }
+    nav.toc a {
+      font: 600 13px/1 var(--font-mono); color: var(--text); text-decoration: none;
+      border: 1px solid var(--line); background: var(--panel); padding: 9px 12px; border-radius: 999px;
+    }
+    nav.toc a:hover { border-color: var(--amber); color: var(--amber); }
+    h2 { font: italic 400 34px/1.1 var(--font-display); margin: 56px 0 8px; }
+    h2 + p.sub { margin: 0 0 20px; color: var(--muted); max-width: 720px; }
+    h3.group { font: 600 13px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); margin: 32px 0 12px; }
+    a { color: var(--amber); }
+
+    .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+    .rule { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .rule b { display: block; font: 600 16px/1.3 var(--font-body); margin-bottom: 4px; }
+    .rule p { margin: 0; color: var(--muted); font-size: 15px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 var(--font-mono); padding: 5px 8px 5px 5px; border-radius: 999px; background: var(--panel-2); }
+    .chip canvas { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .card-head { display: flex; align-items: center; gap: 12px; }
+    .card-head canvas { width: 72px; height: 40px; border-radius: 8px; flex: none; box-shadow: 0 0 0 1px var(--line); }
+    .card-head h4 { margin: 0; font: 400 24px/1.1 var(--font-display); }
+    .card-head .tag { display: block; font: italic 400 15px/1.3 var(--font-display); color: var(--muted); margin-top: 2px; }
+    .card p { margin: 0; font-size: 15px; }
+    .card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; }
+    .card li { padding-left: 18px; position: relative; }
+    .card li::before { content: '→'; position: absolute; left: 0; color: var(--amber); font-family: var(--font-mono); }
+    .card li b { font-weight: 600; }
+    .meta { font: 400 12px/1.4 var(--font-mono); color: var(--muted); }
+
+    canvas.sw { image-rendering: pixelated; image-rendering: crisp-edges; display: block; background: #000; }
+
+    .ladder { display: grid; gap: 6px; }
+    .rung { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+    .rung .w { font: 600 14px/1 var(--font-mono); color: var(--muted); }
+    .rung .who { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .ends { display: flex; justify-content: space-between; font: 600 12px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 4px 6px; }
+
+    .tbl { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .tbl th { font: 600 12px/1.2 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .tbl td:first-child { white-space: nowrap; }
+    .bar { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #ff4608, #ffde46); }
+    .scroll { overflow-x: auto; }
+
+    .recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; counter-reset: r; }
+    .recipe { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; counter-increment: r; }
+    .recipe h4 { margin: 0 0 6px; font: 400 21px/1.2 var(--font-display); }
+    .recipe h4::before { content: counter(r, decimal-leading-zero) '  '; font: 600 13px/1 var(--font-mono); color: var(--amber); }
+    .recipe p { margin: 0; font-size: 15px; }
+    .recipe .how { color: var(--muted); margin-top: 6px; }
+
+    kbd { font: 600 12px/1 var(--font-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 3px 6px; background: var(--panel-2); }
+    footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
+    @media (max-width: 520px) {
+      body { font-size: 16px; }
+      .wordmark { font-size: 32px; }
+      h2 { font-size: 28px; }
+      .cards, .recipes { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1 class="wordmark">Sand<em>painter</em></h1>
+    <span class="kicker">the element guide</span>
+  </header>
+  <p class="lede">Twenty-six things you can paint, nine more they turn into, and everything that happens when they meet. Every number here comes straight out of the game's code.</p>
+
+  <nav class="toc" aria-label="Sections">
+    <a href="#rules">The five rules</a>
+    <a href="#ladder">Who floats on whom</a>
+    <a href="#elements">Every element</a>
+    <a href="#hidden">Secret elements</a>
+    <a href="#fire">How fast things burn</a>
+    <a href="#booms">Explosions</a>
+    <a href="#recipes">Recipes to try</a>
+    <a href="#world">Gravity, wind, spigots</a>
+  </nav>
+
+  <!-- ============================== RULES -->
+  <h2 id="rules">The five rules</h2>
+  <p class="sub">Learn these and you can guess what most things will do before you try them.</p>
+  <div class="rules">
+    <div class="rule">
+      <b>1 · Heavy sinks, light floats</b>
+      <p>Powders sink through lighter liquids. Liquids sort themselves by weight, so oil ends up on water and salt water ends up under it.</p>
+    </div>
+    <div class="rule">
+      <b>2 · Gases go up</b>
+      <p>Fire, embers, steam and methane rise. Steam and methane even bubble up through water and loose sand.</p>
+    </div>
+    <div class="rule">
+      <b>3 · Four things are hot</b>
+      <p>Hot is what lights, melts, boils and detonates. It only counts when touching side-by-side or above/below. Corners don't count, except for Fuse.</p>
+      <div class="chips"><span class="chip" data-el="fire">Fire</span><span class="chip" data-el="ember">Ember</span><span class="chip" data-el="lava">Lava</span><span class="chip" data-el="torch">Torch</span></div>
+    </div>
+    <div class="rule">
+      <b>4 · Fuel keeps fire alive</b>
+      <p>A lone flame floats up and dies in a blink. Next to fuel it stays put, keeps burning and spreads.</p>
+      <div class="chips"><span class="chip" data-el="oil">Oil</span><span class="chip" data-el="napalm">Napalm</span><span class="chip" data-el="plant">Plant</span><span class="chip" data-el="wax">Wax</span><span class="chip" data-el="fuse">Fuse</span><span class="chip" data-el="seed">Seed</span><span class="chip" data-el="stem">Stem</span><span class="chip" data-el="bloom">Bloom</span></div>
+    </div>
+    <div class="rule">
+      <b>5 · Only two things are forever</b>
+      <p>Acid and explosions can't touch Wall or Clone. The Eraser still removes anything.</p>
+      <div class="chips"><span class="chip" data-el="wall">Wall</span><span class="chip" data-el="clone">Clone</span></div>
+    </div>
+  </div>
+
+  <!-- ============================== LADDER -->
+  <h2 id="ladder">Who floats on whom</h2>
+  <p class="sub">Weight decides who ends up on top. A powder sinks through any liquid lighter than it. A liquid slides under any lighter liquid. Things on the same rung just mix.</p>
+  <div class="ends"><span>↑ floats</span><span>weight</span></div>
+  <div class="ladder">
+    <div class="rung"><span class="w">0.5</span><span class="who"><span class="chip" data-el="snow">Snow</span><span class="meta">never sinks at all; it rests on water and oil until it melts</span></span></div>
+    <div class="rung"><span class="w">0.8</span><span class="who"><span class="chip" data-el="oil">Oil</span></span></div>
+    <div class="rung"><span class="w">0.9</span><span class="who"><span class="chip" data-el="napalm">Napalm</span><span class="chip" data-el="moltenwax">Molten wax</span></span></div>
+    <div class="rung"><span class="w">1.0</span><span class="who"><span class="chip" data-el="water">Water</span><span class="chip" data-el="cryo">Cryo</span></span></div>
+    <div class="rung"><span class="w">1.05</span><span class="who"><span class="chip" data-el="acid">Acid</span><span class="meta">sinks under water</span></span></div>
+    <div class="rung"><span class="w">1.1</span><span class="who"><span class="chip" data-el="nitro">Nitro</span><span class="meta">sinks under water and acid</span></span></div>
+    <div class="rung"><span class="w">1.2</span><span class="who"><span class="chip" data-el="saltwater">Salt water</span><span class="meta">the heaviest liquid except lava</span></span></div>
+    <div class="rung"><span class="w">1.5</span><span class="who"><span class="chip" data-el="seed">Seed</span></span></div>
+    <div class="rung"><span class="w">2</span><span class="who"><span class="chip" data-el="sand">Sand</span><span class="chip" data-el="salt">Salt</span><span class="chip" data-el="gunpowder">Gunpowder</span><span class="chip" data-el="soil">Soil</span></span></div>
+    <div class="rung"><span class="w">2.2</span><span class="who"><span class="chip" data-el="wetsoil">Wet soil</span></span></div>
+    <div class="rung"><span class="w">2.5</span><span class="who"><span class="chip" data-el="concrete">Concrete</span></span></div>
+    <div class="rung"><span class="w">3</span><span class="who"><span class="chip" data-el="lava">Lava</span><span class="chip" data-el="rock">Rock</span><span class="meta">lava is so heavy that sand, salt and even rock sit on top of it</span></span></div>
+  </div>
+  <div class="ends" style="margin-top:6px"><span>↓ sinks</span><span></span></div>
+
+  <!-- ============================== ELEMENTS -->
+  <h2 id="elements">Every element</h2>
+  <p class="sub">In the same order as the tray on the left of the game. The swatches use the game's own colours and grain.</p>
+
+  <h3 class="group">Powders</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="sand"></canvas><div><h4>Sand</h4><span class="tag">the calm one</span></div></div>
+      <p>Falls, piles into slopes, sinks through water and oil. Almost nothing bothers it.</p>
+      <ul>
+        <li><b>Lava:</b> sand floats on it. Lava is heavier.</li>
+        <li><b>Acid:</b> gets eaten.</li>
+        <li><b>Explosions:</b> blown away.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="salt"></canvas><div><h4>Salt</h4><span class="tag">sand's reactive cousin</span></div></div>
+      <p>Falls like sand, but it's busy.</p>
+      <ul>
+        <li><b>Water:</b> dissolves. The grain vanishes and the water turns into <b>salt water</b>.</li>
+        <li><b>Ice and snow:</b> melts them back into water.</li>
+        <li><b>Plant:</b> slowly kills it.</li>
+        <li><b>Heat:</b> nothing. Salt doesn't melt.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="gunpowder"></canvas><div><h4>Gunpowder</h4><span class="tag">sand with a temper</span></div></div>
+      <p>Anything hot touching it sets off a small blast. Each pop throws fire and embers that set off the next grains, so a trail of it goes off like a string of firecrackers.</p>
+      <ul>
+        <li><b>Water:</b> doesn't make it safe. It sinks and stays live underwater.</li>
+        <li><b>Acid:</b> eats it quietly, no bang.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="concrete"></canvas><div><h4>Concrete</h4><span class="tag">pours, then sets</span></div></div>
+      <p>Flows like sand. Once a grain has sat still for a moment it hardens into <b>set concrete</b>: darker, solid, doesn't move.</p>
+      <ul>
+        <li>Great for dams, bowls and bridges.</li>
+        <li><b>Acid and explosions:</b> still break set concrete. Only Wall is truly forever.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="soil"></canvas><div><h4>Soil</h4><span class="tag">a sponge</span></div></div>
+      <p>Drinks any water it touches. The water disappears and the soil darkens into <b>wet soil</b>.</p>
+      <ul>
+        <li><b>Wet soil</b> is clumpy: it holds steeper hills than dry soil.</li>
+        <li><b>Heat:</b> dries wet soil back out.</li>
+        <li><b>Seeds</b> only sprout on wet soil.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="snow"></canvas><div><h4>Snow</h4><span class="tag">falls lazy</span></div></div>
+      <p>Drifts down slowly, flutters sideways, and is the lightest powder in the game. It never sinks.</p>
+      <ul>
+        <li><b>Heat:</b> melts fast.</li>
+        <li><b>Salt or water:</b> melts it too.</li>
+        <li>Left alone it very slowly melts anyway.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="seed"></canvas><div><h4>Seed</h4><span class="tag">a flower in waiting</span></div></div>
+      <p>Land it on <b>wet soil</b> and it sprouts a stem 6 to 14 pixels tall, topped with a flower in one of five colours.</p>
+      <ul>
+        <li>Dry soil, sand, rock: nothing happens. It has to be wet soil.</li>
+        <li><b>Fire:</b> seeds burn (fuel).</li>
+        <li>Sinks in water.</li>
+      </ul>
+    </article>
+  </div>
+
+  <h3 class="group">Liquids</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="water"></canvas><div><h4>Water</h4><span class="tag">finds its level</span></div></div>
+      <p>Spreads out flat and fills whatever it's in. It reacts with more things than anything else.</p>
+      <ul>
+        <li><b>Heat:</b> boils into steam.</li>
+        <li><b>Fire:</b> water wins. The flame dies and the water puffs into steam.</li>
+        <li><b>Lava:</b> both change. Water becomes steam, lava cools into rock.</li>
+        <li><b>Ice:</b> slowly freezes. <b>Cryo:</b> freezes fast.</li>
+        <li><b>Salt:</b> becomes salt water. <b>Soil:</b> gets soaked up.</li>
+        <li><b>Plant:</b> gets turned into more plant.</li>
+        <li><b>Acid:</b> waters it down into plain water.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="oil"></canvas><div><h4>Oil</h4><span class="tag">floats, then burns</span></div></div>
+      <p>Lighter than water, so it always ends up on top. It catches fire more easily than anything else, and flames on oil sit and burn instead of floating off. A lit slick burns across its whole surface.</p>
+      <ul>
+        <li><b>Water underneath:</b> where the flames reach the water, they die and the water puffs into steam.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="nitro"></canvas><div><h4>Nitro</h4><span class="tag">liquid dynamite</span></div></div>
+      <p>Any heat and it goes off with a big blast. It doesn't burn, it explodes.</p>
+      <ul>
+        <li>Heavier than water, so it sinks to the bottom of a pond: a hidden mine.</li>
+        <li><b>Acid:</b> dissolves it safely.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="napalm"></canvas><div><h4>Napalm</h4><span class="tag">sticky, stubborn fire</span></div></div>
+      <p>Thick and slow. It doesn't explode. Once lit, it keeps spitting flames into the air around it and burns away only very slowly.</p>
+      <ul>
+        <li>Floats on water, and <b>water can't put it out</b>. It only kills the flames it touches.</li>
+        <li><b>Cryo</b> can put it out.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="lava"></canvas><div><h4>Lava</h4><span class="tag">heavy, slow, always hot</span></div></div>
+      <p>The heaviest liquid and the slowest. It's permanently hot, so it lights, melts, boils or sets off everything it touches, and it never cools down on its own.</p>
+      <ul>
+        <li><b>Water or salt water:</b> hisses into steam and cools into <b>rock</b>.</li>
+        <li><b>Cryo:</b> instantly turns it to rock.</li>
+        <li><b>Sand, salt, rock:</b> float on it.</li>
+        <li><b>Acid:</b> yes, acid can eat lava.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="cryo"></canvas><div><h4>Cryo</h4><span class="tag">liquid cold</span></div></div>
+      <p>The fire extinguisher. It gets used up as it works, sometimes puffing into steam, and slowly evaporates on its own.</p>
+      <ul>
+        <li><b>Water:</b> freezes it to ice.</li>
+        <li><b>Lava:</b> turns it to rock.</li>
+        <li><b>Fire and embers:</b> erases them.</li>
+        <li><b>Torch:</b> erases it too, for good.</li>
+        <li><b>Steam:</b> condenses it back to water.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="acid"></canvas><div><h4>Acid</h4><span class="tag">eats almost anything</span></div></div>
+      <p>Every touch has a chance to delete what it's touching, and every bite has a chance to use the acid up. A small puddle only goes so far.</p>
+      <ul>
+        <li><b>Won't eat:</b> water, wall, clone, or other acid.</li>
+        <li><b>Water:</b> dilutes acid into water.</li>
+        <li><b>Will eat:</b> spouts, wells, torches, set concrete, lava, salt water, fire…</li>
+        <li><b>C-4, gunpowder, nitro:</b> dissolves them with no explosion, because acid isn't hot.</li>
+        <li>A little heavier than water, so it sinks and eats whatever is at the bottom.</li>
+      </ul>
+    </article>
+  </div>
+
+  <h3 class="group">Solids</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="wall"></canvas><div><h4>Wall</h4><span class="tag">doesn't move, doesn't care</span></div></div>
+      <p>Stays exactly where you paint it. Doesn't burn, melt, dissolve or blow up. Build containers, ceilings and bridges with it.</p>
+      <ul>
+        <li>Only the <b>Eraser</b> removes it.</li>
+        <li><b>It is not a blast shield.</b> The wall survives, but whatever is behind it still gets hit.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="plant"></canvas><div><h4>Plant</h4><span class="tag">thirsty</span></div></div>
+      <p>Every drop of water it touches becomes more plant. Drop a little plant in a puddle and it drinks the whole puddle.</p>
+      <ul>
+        <li><b>Salt water:</b> won't drink it.</li>
+        <li><b>Salt:</b> next to it, slowly kills it.</li>
+        <li><b>Fire:</b> burns (fuel).</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="wax"></canvas><div><h4>Wax</h4><span class="tag">a candle</span></div></div>
+      <p>Wax doesn't catch fire itself. Near heat it melts into <b>molten wax</b>, which drips and oozes, then hardens back into wax when it cools and settles.</p>
+      <ul>
+        <li>Molten wax can catch fire, but rarely.</li>
+        <li>Put a block of it on a torch and you get a dripping candle.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="c4"></canvas><div><h4>C-4</h4><span class="tag">polite until it isn't</span></div></div>
+      <p>Solid, stays put, completely harmless until heat touches it. Then it makes the biggest explosion in the game.</p>
+      <ul>
+        <li><b>Acid:</b> dissolves it without a bang.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="fuse"></canvas><div><h4>Fuse</h4><span class="tag">a wick</span></div></div>
+      <p>Heat on any of its eight neighbours, corners included, turns a piece of fuse into flame, which lights the next piece. Draw a line, light one end, watch it run.</p>
+      <ul><li>Diagonal lines work because corners count for fuse.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="ice"></canvas><div><h4>Ice</h4><span class="tag">a slow frost</span></div></div>
+      <p>Freezes the water touching it, a little at a time. Leave one ice cube in a pond and eventually the pond is ice.</p>
+      <ul>
+        <li><b>Heat or salt:</b> melts it back to water.</li>
+        <li><b>Steam:</b> touching ice turns straight back into water.</li>
+      </ul>
+    </article>
+  </div>
+
+  <h3 class="group">Energy</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="fire"></canvas><div><h4>Fire</h4><span class="tag">rises and dies, unless fed</span></div></div>
+      <p>A lone flame floats up and fizzles out in a blink. Touching fuel it stays, keeps burning and spreads into the fuel.</p>
+      <ul>
+        <li><b>Lights:</b> oil, plants, seeds, stems, flowers, fuse, napalm.</li>
+        <li><b>Melts:</b> wax, ice, snow. <b>Boils:</b> water. <b>Dries:</b> wet soil.</li>
+        <li><b>Sets off:</b> gunpowder, nitro, methane, C-4.</li>
+        <li><b>Water:</b> puts it out.</li>
+        <li>Painted in mid-air above fuel, it floats away. It has to touch the fuel.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="methane"></canvas><div><h4>Methane</h4><span class="tag">a cloud of trouble</span></div></div>
+      <p>A drifting gas that rises and bubbles up through water and sand. Any heat makes it pop. A room full of it goes off in a rolling chain, each pop lighting the next.</p>
+      <ul><li>Wind pushes gases hardest, so you can steer a methane cloud.</li></ul>
+    </article>
+  </div>
+
+  <h3 class="group">Producers</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="spout"></canvas><div><h4>Spout</h4><span class="tag">endless water</span></div></div>
+      <p>Drips water into any empty space next to it, forever.</p>
+      <ul><li>Not indestructible: acid eats it and blasts destroy it.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="well"></canvas><div><h4>Well</h4><span class="tag">endless oil</span></div></div>
+      <p>Pumps oil out into any empty space next to it, forever. Put one near a torch for an oil fire that never ends.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="torch"></canvas><div><h4>Torch</h4><span class="tag">endless fire</span></div></div>
+      <p>Throws flames into the empty space around it, and is hot itself, so it melts, boils and lights anything touching it.</p>
+      <ul><li><b>Cryo</b> puts it out for good (erases it). Acid and explosions destroy it too.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="clone"></canvas><div><h4>Clone</h4><span class="tag">a copy machine</span></div></div>
+      <p>Copies the first powder, liquid or gas that touches it, then makes more of it forever. Indestructible.</p>
+      <ul>
+        <li><b>Can't copy solids:</b> wall, plant, ice, wax, C-4, fuse.</li>
+        <li><b>Lava</b> → lava fountain. <b>Steam</b> → cloud machine. <b>Fire</b> → eternal flame. <b>Seed</b> → seed rain.</li>
+        <li>It also copies secret elements: <b>rock</b>, <b>salt water</b>, <b>embers</b>…</li>
+        <li>To reset one, erase it and paint a fresh clone.</li>
+      </ul>
+    </article>
+  </div>
+
+  <h3 class="group">Tools</h3>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="random"></canvas><div><h4>Random</h4><span class="tag">chaos with extra steps</span></div></div>
+      <p>Every pixel you paint is a different pick from 18 elements: sand, water, salt, oil, gunpowder, nitro, napalm, concrete, lava, cryo, snow, acid, seed, soil, methane, plant, wax and ice.</p>
+      <ul><li>A big Random brush has lava and explosives in it, so it goes off by itself.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="eraser"></canvas><div><h4>Eraser</h4><span class="tag">the only true undo-er</span></div></div>
+      <p>Removes anything, walls and clones included. Right-drag or Shift-drag erases with any element selected.</p>
+    </article>
+  </div>
+
+  <!-- ============================== HIDDEN -->
+  <h2 id="hidden">Secret elements</h2>
+  <p class="sub">These aren't in the tray. You can only make them.</p>
+  <div class="cards">
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="saltwater"></canvas><div><h4>Salt water</h4><span class="tag">salt + water</span></div></div>
+      <p>Heavier than fresh water, so it sinks and makes a layered sea.</p>
+      <ul>
+        <li><b>Boil it:</b> most goes to steam, but some turns back into <b>salt crystals</b>.</li>
+        <li>Plants won't drink it. Acid <i>will</i> eat it, though it won't eat fresh water.</li>
+        <li>Puts out fire and cools lava, same as water.</li>
+      </ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="steam"></canvas><div><h4>Steam</h4><span class="tag">boiled water</span></div></div>
+      <p>Rises, bubbles up through liquids, gathers under ceilings, and turns back into water drops. That's rain. Trapped steam turns back faster.</p>
+      <ul><li><b>Ice or cryo:</b> instantly back to water.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="ember"></canvas><div><h4>Ember</h4><span class="tag">blast leftovers</span></div></div>
+      <p>Glowing bits thrown out by every explosion. They live only a moment and float up, but they're hot, so they can set off whatever they land next to.</p>
+      <ul><li><b>Water:</b> snuffs them out instantly.</li></ul>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="moltenwax"></canvas><div><h4>Molten wax</h4><span class="tag">wax + heat</span></div></div>
+      <p>Slow, gloopy, floats on water. Away from heat it hardens back into wax wherever it comes to rest.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="setconcrete"></canvas><div><h4>Set concrete</h4><span class="tag">concrete that sat still</span></div></div>
+      <p>Solid and immovable, but not forever. Acid and explosions still break it.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="rock"></canvas><div><h4>Rock</h4><span class="tag">lava that met water</span></div></div>
+      <p>Heavy dark grains that tumble and sink through every liquid except lava.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="wetsoil"></canvas><div><h4>Wet soil</h4><span class="tag">soil + water</span></div></div>
+      <p>Dark, clumpy, and the only thing seeds will grow in. Heat dries it back to soil.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="stem"></canvas><div><h4>Stem</h4><span class="tag">seed + wet soil</span></div></div>
+      <p>Grows upward one pixel at a time and can push up through water. If something solid is in the way, it may give up. Burns.</p>
+    </article>
+    <article class="card">
+      <div class="card-head"><canvas class="sw" data-el="bloom"></canvas><div><h4>Bloom</h4><span class="tag">the flower on top</span></div></div>
+      <p>Pops open where a stem finishes: pink, gold, violet, coral or ice-blue, picked at random. Flowers catch fire easily.</p>
+    </article>
+  </div>
+
+  <!-- ============================== FIRE TABLE -->
+  <h2 id="fire">How fast things burn</h2>
+  <p class="sub">Each time a flame touches fuel, this is the chance the fuel catches that moment. Higher means it goes up faster.</p>
+  <div class="scroll">
+  <table class="tbl">
+    <thead><tr><th>Fuel</th><th>Catch chance</th><th style="width:45%"></th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip" data-el="fuse">Fuse</span></td><td>every time</td><td><div class="bar" style="width:100%"></div></td></tr>
+      <tr><td><span class="chip" data-el="oil">Oil</span></td><td>30%</td><td><div class="bar" style="width:30%"></div></td></tr>
+      <tr><td><span class="chip" data-el="bloom">Bloom</span></td><td>25%</td><td><div class="bar" style="width:25%"></div></td></tr>
+      <tr><td><span class="chip" data-el="seed">Seed</span></td><td>20%</td><td><div class="bar" style="width:20%"></div></td></tr>
+      <tr><td><span class="chip" data-el="plant">Plant</span></td><td>18%</td><td><div class="bar" style="width:18%"></div></td></tr>
+      <tr><td><span class="chip" data-el="stem">Stem</span></td><td>15%</td><td><div class="bar" style="width:15%"></div></td></tr>
+      <tr><td><span class="chip" data-el="moltenwax">Molten wax</span></td><td>4%</td><td><div class="bar" style="width:4%"></div></td></tr>
+      <tr><td><span class="chip" data-el="napalm">Napalm</span></td><td colspan="2">doesn't catch; it throws flames around itself instead</td></tr>
+      <tr><td><span class="chip" data-el="wax">Wax</span></td><td colspan="2">never catches; it melts first</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- ============================== BOOMS -->
+  <h2 id="booms">Explosions</h2>
+  <p class="sub">All four explosives go off the moment something hot touches them. Blast size is the radius in pixels. Everything inside is blown into fire, embers and empty space, except Wall and Clone.</p>
+  <div class="scroll">
+  <table class="tbl">
+    <thead><tr><th>Explosive</th><th>Blast</th><th style="width:45%"></th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip" data-el="methane">Methane</span></td><td>4 px · pop</td><td><div class="bar" style="width:25%"></div></td></tr>
+      <tr><td><span class="chip" data-el="gunpowder">Gunpowder</span></td><td>6 px · bang</td><td><div class="bar" style="width:37.5%"></div></td></tr>
+      <tr><td><span class="chip" data-el="nitro">Nitro</span></td><td>10 px · BOOM</td><td><div class="bar" style="width:62.5%"></div></td></tr>
+      <tr><td><span class="chip" data-el="c4">C-4</span></td><td>16 px · crater</td><td><div class="bar" style="width:100%"></div></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="sub" style="margin-top:12px">Every blast leaves hot fire and embers behind, so explosives packed together set each other off in a chain. The edge of a blast turns empty space and liquids into embers but leaves solid ground and powders standing.</p>
+
+  <!-- ============================== RECIPES -->
+  <h2 id="recipes">Recipes to try</h2>
+  <p class="sub">Press <kbd>Space</kbd> to pause while you set something up, then press it again to let it run.</p>
+  <div class="recipes">
+    <div class="recipe"><h4>Oil spill</h4><p>Pour a pool of water, float oil on top, touch one edge with fire.</p><p class="how">The slick burns end to end. Steam puffs up where flame meets water.</p></div>
+    <div class="recipe"><h4>Dripping candle</h4><p>Paint a small torch, then a tall block of wax sitting right on it.</p><p class="how">The wax melts, drips down the sides and re-hardens into puddles.</p></div>
+    <div class="recipe"><h4>Volcano island</h4><p>Fill the bottom with water, then pour lava in from above.</p><p class="how">Lava sinks, cools into rock islands, and sends up clouds of steam.</p></div>
+    <div class="recipe"><h4>Make it rain</h4><p>Wall off a box with a ceiling, put water in, and a torch underneath the water line.</p><p class="how">Steam gathers under the ceiling and drips back down as rain.</p></div>
+    <div class="recipe"><h4>Garden</h4><p>Lay a bed of soil, sprinkle water on it, then drop seeds on the dark wet patches.</p><p class="how">Stems shoot up and bloom in five colours. Add fire if you're feeling cruel.</p></div>
+    <div class="recipe"><h4>Upside-down garden</h4><p>Grow a garden, then press <kbd>G</kbd> to flip gravity.</p><p class="how">Everything loose falls to the ceiling, and new stems grow downward.</p></div>
+    <div class="recipe"><h4>Demolition</h4><p>Put C-4 inside a wall box, run a fuse out of it, then touch the far end with fire.</p><p class="how">The flame runs in and the crater appears. The walls survive, but they shield nothing: everything within 16 pixels is gone, even outside the box.</p></div>
+    <div class="recipe"><h4>Underwater mine</h4><p>Make a pond and pour nitro in. It sinks and hides on the bottom. Then paint one dab of lava right onto the nitro.</p><p class="how">The blast punches a hole straight through the pond. Dropping lava in from above won't work: the water cools it into rock before it gets there.</p></div>
+    <div class="recipe"><h4>Frozen pond</h4><p>Make a pond and drop a single pixel of ice in it.</p><p class="how">Watch the frost creep outward. Use cryo if you're impatient.</p></div>
+    <div class="recipe"><h4>Defuse with acid</h4><p>Put C-4 in a wall cup and pour acid over it.</p><p class="how">The acid eats it away quietly. No bang, because acid isn't hot.</p></div>
+    <div class="recipe"><h4>Lava fountain</h4><p>Paint a clone block and touch it with lava first.</p><p class="how">It turns out lava forever. Try steam for a cloud machine or seeds for seed rain.</p></div>
+    <div class="recipe"><h4>Salt layers</h4><p>Fill with water, then set a spigot to pour salt.</p><p class="how">Salt water sinks under the fresh water in a paler band. Heat it and salt crystals come back out.</p></div>
+    <div class="recipe"><h4>Gas leak</h4><p>Wall off a room, fill it with methane, then drop in one spark.</p><p class="how">The pops roll through the whole cloud, one lighting the next.</p></div>
+    <div class="recipe"><h4>Firefighter</h4><p>Start a big oil fire with a torch, then pour cryo on it.</p><p class="how">Flames vanish, the torch goes out for good, and the cryo puffs into steam as it works.</p></div>
+  </div>
+
+  <!-- ============================== WORLD -->
+  <h2 id="world">Gravity, wind and spigots</h2>
+  <div class="rules">
+    <div class="rule"><b>Gravity (<kbd>G</kbd>)</b><p>Flips everything. Powders and liquids fall up, gases sink, the spigots move to the bottom edge, and stems grow the other way.</p></div>
+    <div class="rule"><b>Wind (slider)</b><p>Pushes gases hardest, steers liquids as they flow, and nudges powders a little. It only moves things into empty space.</p></div>
+    <div class="rule"><b>Spigots</b><p>Four pourers along the top. Each can pour sand, water, salt, oil, gunpowder, nitro, napalm, concrete, lava, cryo, snow, acid, seed, soil or Random, at six strengths from off to full.</p></div>
+    <div class="rule"><b>Speed and step</b><p><kbd>-</kbd> <kbd>+</kbd> run the world from quarter speed to 4×. <kbd>Space</kbd> pauses, <kbd>.</kbd> moves one tick at a time: good for watching a reaction frame by frame.</p></div>
+  </div>
+
+  <footer>
+    Sandpainter is a from-scratch remake of Artsology's Sandpainting Game v2. This guide describes the game as of v1.0.
+  </footer>
+</div>
+
+<script>
+(() => {
+  // Colours copied from src/engine/elements.js: [rgb, rgb2 or null, variance, flickers]
+  const E = {
+    wall: [[98, 94, 88], null, 7], sand: [[226, 196, 110], null, 20],
+    water: [[36, 108, 232], [76, 156, 255], 0], salt: [[242, 242, 238], null, 8],
+    saltwater: [[104, 168, 236], null, 12], oil: [[128, 62, 18], [86, 40, 12], 0],
+    plant: [[44, 190, 74], null, 22], fire: [[255, 70, 8], [255, 222, 70], 0, 1],
+    ember: [[170, 36, 4], [255, 150, 40], 0, 1], steam: [[196, 212, 228], null, 14],
+    spout: [[118, 190, 250], null, 5], well: [[138, 22, 38], null, 6],
+    torch: [[210, 48, 0], [255, 130, 24], 0, 1], gunpowder: [[150, 150, 128], null, 20],
+    wax: [[238, 226, 206], null, 6], moltenwax: [[246, 234, 200], null, 6],
+    nitro: [[24, 164, 64], null, 14], napalm: [[232, 132, 60], null, 18],
+    c4: [[240, 230, 150], null, 6], concrete: [[172, 172, 170], null, 12],
+    setconcrete: [[128, 128, 126], null, 8], fuse: [[222, 176, 202], null, 8],
+    ice: [[168, 228, 255], null, 12], lava: [[222, 58, 18], [255, 176, 52], 0, 1],
+    rock: [[72, 46, 22], null, 16], cryo: [[0, 196, 255], [156, 240, 255], 0],
+    methane: [[142, 142, 154], null, 10], soil: [[122, 76, 36], null, 16],
+    wetsoil: [[70, 38, 14], null, 10], snow: [[246, 248, 255], null, 5],
+    seed: [[184, 142, 62], null, 16], stem: [[62, 142, 52], null, 12],
+    acid: [[136, 255, 40], [222, 255, 128], 0], clone: [[226, 190, 255], null, 6],
+    eraser: [[12, 11, 10], null, 2],
+  };
+  const BLOOMS = [[255, 108, 172], [255, 212, 64], [182, 112, 255], [255, 122, 82], [206, 224, 255]];
+  const RANDOM_POOL = ['sand', 'water', 'salt', 'oil', 'gunpowder', 'nitro', 'napalm', 'concrete', 'lava',
+    'cryo', 'snow', 'acid', 'seed', 'soil', 'methane', 'plant', 'wax', 'ice'];
+
+  const clamp = (v) => (v < 0 ? 0 : v > 255 ? 255 : v | 0);
+  function shadeOf(spec, s) {
+    const [rgb, rgb2, variance] = spec;
+    const t = s / 7;
+    if (rgb2) return rgb.map((c, k) => clamp(c + (rgb2[k] - c) * t));
+    const f = (t - 0.5) * 2 * variance;
+    return rgb.map((c) => clamp(c + f));
+  }
+  function pick(name) {
+    if (name === 'bloom') return [BLOOMS[(Math.random() * 5) | 0], null, 22];
+    if (name === 'random') return E[RANDOM_POOL[(Math.random() * RANDOM_POOL.length) | 0]];
+    return E[name];
+  }
+  function paint(cv) {
+    const name = cv.dataset.el;
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(cv.width, cv.height);
+    const d = img.data;
+    for (let p = 0; p < cv.width * cv.height; p++) {
+      const spec = pick(name);
+      const [r, g, b] = shadeOf(spec, (Math.random() * 8) | 0);
+      d[p * 4] = r; d[p * 4 + 1] = g; d[p * 4 + 2] = b; d[p * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // Chips get a small round swatch; cards already have a canvas.
+  for (const chip of document.querySelectorAll('.chip[data-el]')) {
+    const cv = document.createElement('canvas');
+    cv.className = 'sw';
+    cv.dataset.el = chip.dataset.el;
+    chip.prepend(cv);
+  }
+  const all = [...document.querySelectorAll('canvas.sw')];
+  for (const cv of all) {
+    const small = cv.parentElement.classList.contains('chip');
+    cv.width = small ? 7 : 36;
+    cv.height = small ? 7 : 20;
+    paint(cv);
+  }
+  const flicker = all.filter((cv) => { const s = E[cv.dataset.el]; return s && s[3]; });
+  if (flicker.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setInterval(() => flicker.forEach(paint), 110);
+  }
+})();
+</script>
+</body>
+</html>
