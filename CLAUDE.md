@@ -31,6 +31,10 @@ Keep it current when something non-obvious is learned.
 - Instructions for people are plain English and short (README "Play it", the release
   notes, `READ ME FIRST.txt` in the zip). Keep developer detail below the "Changing the
   code" line.
+- Spigot chips (owner, 2026-09-29: "once I turn them off I can not turn them back on, or at
+  least I do not know how"): a labelled **OFF** button that lights amber while stopped, five
+  bars with 22 px-tall hit areas, and the chip never fades as a whole. On screens under 560 px
+  they sit in four even columns because absolutely placed chips overlap there.
 
 ## Run
 
@@ -43,8 +47,8 @@ python3 -m http.server 5173            # Debian (use `python` on Windows)
 ```
 
 On the Debian box a LAN copy is always up: http://192.168.13.131/sandpainter/ is Apache
-serving the `~/sandpainter` checkout directly (no-cache header; the dot-folders and
-`tools/` are blocked). Update it by pulling in that checkout.
+serving the `~/sandpainter` checkout of `main` directly (no-cache header; the dot-folders
+and `tools/` are blocked). Update it with `git -C ~/sandpainter pull`.
 
 ## Architecture
 
@@ -84,7 +88,15 @@ Engine conventions:
 `node tools/engine_checks.mjs` runs the engine headless on small scenes and checks the
 less obvious claims in `Element-Guide.html` (sand floats on lava, acid defuses C-4, walls
 don't shield blasts, salt water sinks, seeds need wet soil, cryo kills torches, ...).
-Exits 1 on any failure. Otherwise there is no test runner. Verify in a browser console against the live page:
+Exits 1 on any failure. Otherwise there is no test runner.
+
+`tools/cdp.mjs` drives headless Chromium over the DevTools protocol (real mouse events, dark or
+light mode, any window size); `tools/screenshots.mjs` uses it to stage scenes through the app
+API and write `docs/screenshots/*.png` (`node --experimental-websocket tools/screenshots.mjs
+[02 05 ...]`). The README pictures were then shrunk to 256 colours with Pillow
+(`quantize(256, MEDIANCUT, dither NONE)`), about half the size with no visible change.
+UI bugs that only show with a real mouse (pointer capture, toasts) need `cdp.mjs`, not
+`element.click()`. Verify in a browser console against the live page:
 `window.sandpainter` is the app API. `sandpainter.params.paused = true`, then
 `sandpainter.paint(x0, y0, x1, y1, id, size)` and `sandpainter.tick(n)` run the engine
 deterministically enough to count cells before and after. Import ids with
@@ -97,8 +109,26 @@ grow into water, seeds bloom on wet soil, acid eats sand but not wall, clone cop
 gravity flip, wind drift, concrete sets, save/load round-trip, undo. About 1.4 ms per step
 with ~17k grains. No horizontal scroll at 375 px wide.
 
+## Bugs fixed 2026-09-29 (v1.0.1), and why they happened
+
+- **Dark-mode dropdowns white on white (Windows).** The spigot `<select>` had a transparent
+  background and cream text; Windows draws the open list on white. Options now carry
+  `background: var(--plate); color: var(--text)`.
+- **"Restore your last session?" would not go away.** The toast lives inside `.plate`, whose
+  `pointerdown` handler calls `preventDefault` + `setPointerCapture` to start painting, so the
+  Restore/Fresh clicks never fired and a stroke was painted under the toast instead. The
+  handler now ignores presses inside `#toast`, painting dismisses it, and it fades after 12 s.
+  Its background is a theme token now (it was hard-coded dark, unreadable in light mode).
+- **Canvas stretched.** `.plate` had `aspect-ratio: 4/3` plus `height: 100%` and
+  `max-width: 100%`; whenever the width cap won, the canvas was taller than 4:3 (1.15 at
+  1400x900). `.plate-wrap` is now a size container and the plate's width is
+  `min(100cqw, available height * 4/3)`. The narrow layout switches the container off.
+
 ## Known behaviour (not bugs)
 
+- Fire crosses an oil slick almost at once (half of a 480-px slick in about 12 ticks):
+  ignition propagates along a row within one sweep of `simulation.js`, like the liquid sweep
+  below. It reads well as a flash fire; leave it unless the owner asks.
 - Fire rises. Fire painted in the air above fuel floats away without igniting it; it has
   to touch the fuel.
 - Liquid sideways flow uses an in-place sweep, so a freshly poured, unsettled pool can
@@ -118,7 +148,9 @@ Change an element, change the guide, and rerun `node tools/engine_checks.mjs`.
 `dist/Sandpainter-vX.Y.Z.zip` (folder `Sandpainter/` with the game, the guide and
 `READ ME FIRST.txt`). Attach the zip plus `Sandpainter.html` and `Element-Guide.html` to a
 GitHub release: `gh release create vX.Y.Z dist/Sandpainter-vX.Y.Z.zip Sandpainter.html
-Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29).
+Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29);
+v1.0.1 the same day fixed the four bugs above. Point the README download line at the new
+zip name when you cut one.
 
 ## Publishing
 

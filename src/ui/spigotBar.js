@@ -36,9 +36,17 @@ export function buildSpigotBar(root, app) {
     for (let r = 0; r < RATE_WIDTH.length; r++) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.style.setProperty('--n', r);
-      b.title = r === 0 ? 'Off' : `Flow ${r}`;
-      b.setAttribute('aria-label', r === 0 ? 'Off' : `Flow ${r}`);
+      if (r === 0) {
+        b.className = 'off';
+        b.textContent = 'off';
+        b.title = 'Stop this spigot (click any bar to start it again)';
+        b.setAttribute('aria-label', `Turn spigot ${k + 1} off`);
+      } else {
+        b.className = 'bar';
+        b.style.setProperty('--n', r);
+        b.title = `Pour at strength ${r} of ${RATE_WIDTH.length - 1}`;
+        b.setAttribute('aria-label', `Spigot ${k + 1} strength ${r}`);
+      }
       b.addEventListener('click', () => app.spigots.set(k, { rate: r }));
       bars.push(b);
       rate.append(b);
@@ -56,7 +64,8 @@ export function buildSpigotBar(root, app) {
     const c = chips[k];
     c.dot.style.background = elementCss(s.element);
     c.sel.value = String(s.element);
-    c.bars.forEach((b, r) => b.classList.toggle('on', r <= s.rate && s.rate > 0));
+    c.bars.forEach((b, r) => b.classList.toggle('on', r > 0 && r <= s.rate));
+    c.bars[0].setAttribute('aria-pressed', String(s.rate === 0));
     c.chip.classList.toggle('off', s.rate === 0);
   }
   app.spigots.onChange(paint);
