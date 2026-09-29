@@ -1,0 +1,3 @@
+# Keep LF everywhere so Windows and Debian checkouts stay identical.
+* text=auto eol=lf
+*.png binary

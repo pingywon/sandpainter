@@ -1,0 +1,80 @@
+  <title>Sandpainter</title>
+  <meta name="description" content="A falling-sand painting toy: four spigots, thirty elements, fire, ice, plants and explosives. A modern take on the classic sand painting game." />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0e0d0b" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e0d0b'/%3E%3Cpath d='M6 26h20v-3H6zM8 21h16v-3H8zM11 16h10v-3H11zM14 11h4V6h-4z' fill='%23f5a524'/%3E%3C/svg%3E" />
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <h1 class="wordmark">Sand<em>painter</em></h1>
+      <p class="tagline">a falling-sand atelier</p>
+    </div>
+    <div class="stats" aria-live="polite">
+      <span id="fps">— fps</span>
+      <span class="dot" aria-hidden="true">·</span>
+      <span id="cells">0 grains</span>
+    </div>
+    <button id="helpBtn" class="iconbtn" type="button" aria-label="Keyboard shortcuts and help">?</button>
+  </header>
+
+  <main class="stage">
+    <aside class="tray" id="tray" aria-label="Elements"></aside>
+
+    <section class="plate-wrap">
+      <div class="spigot-bar" id="spigotBar" aria-label="Spigots"></div>
+      <div class="plate" id="plate">
+        <canvas id="world" role="img" aria-label="Sand painting canvas. Click and drag to paint with the selected element."></canvas>
+        <canvas id="cursor" aria-hidden="true"></canvas>
+        <div class="toast" id="toast" hidden></div>
+      </div>
+      <p class="status" id="status"></p>
+    </section>
+
+    <aside class="rail" id="rail" aria-label="Controls"></aside>
+  </main>
+
+  <dialog id="help" class="help">
+    <form method="dialog">
+      <h2>Sandpainter</h2>
+      <p>Pick an element on the left, drag on the canvas to paint it. Right-click or hold <kbd>Shift</kbd> to erase. The four spigots above the canvas pour on their own: choose what each pours and how hard.</p>
+      <table>
+        <tbody>
+          <tr><td><kbd>Space</kbd></td><td>Pause / play</td></tr>
+          <tr><td><kbd>.</kbd></td><td>Step one frame</td></tr>
+          <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd></td><td>Undo last stroke</td></tr>
+          <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Brush smaller / larger</td></tr>
+          <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Slower / faster</td></tr>
+          <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Quick-pick elements</td></tr>
+          <tr><td><kbd>E</kbd> <kbd>R</kbd></td><td>Eraser / Random</td></tr>
+          <tr><td><kbd>G</kbd></td><td>Flip gravity</td></tr>
+          <tr><td><kbd>C</kbd></td><td>Clear (press twice)</td></tr>
+        </tbody>
+      </table>
+      <p class="fine">Things to try: pour oil on water, then touch it with fire. Drop a seed on soil you have watered. Put a clone block in a stream. Light a fuse that runs to C-4.</p>
+      <button class="btn wide" value="close">Back to painting</button>
+    </form>
+  </dialog>
+
+  <dialog id="shot" class="help shot">
+    <form method="dialog">
+      <h2>Snapshot</h2>
+      <img id="shotImg" alt="Your sand painting" width="640" height="480" />
+      <p class="fine">Right-click or long-press the image to save it where downloads are blocked.</p>
+      <div class="row">
+        <button id="shotDownload" class="btn" type="button">Download PNG</button>
+        <button id="shotCopy" class="btn" type="button">Copy image</button>
+        <button class="btn" value="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+  <script>
+    document.getElementById('helpBtn').addEventListener('click', () => document.getElementById('help').showModal());
+  </script>

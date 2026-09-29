@@ -1,0 +1,10 @@
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+__pycache__/
+
+# Claude Code per-machine settings (shared settings in .claude/ are committed)
+.claude/settings.local.json
