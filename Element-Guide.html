@@ -288,12 +288,12 @@
       </ul>
     </article>
     <article class="card">
-      <div class="card-head"><canvas class="sw" data-el="napalm"></canvas><div><h4>Napalm</h4><span class="tag">sticky, stubborn fire</span></div></div>
-      <p>Thick and slow. It doesn't explode. Once lit, it keeps spitting flames into the air around it and burns away only very slowly.</p>
+      <div class="card-head"><canvas class="sw" data-el="napalm"></canvas><div><h4>Napalm</h4><span class="tag">burning oil</span></div></div>
+      <p>Oil that's already on fire. It flows and floats like oil, with flames dancing on top and balls of flame rolling off it, and it slowly burns itself away.</p>
       <ul>
         <li>Floats on water, and <b>water can't put it out</b>. It only kills the flames it touches.</li>
-        <li><b>Cryo</b> can put it out.</li>
-        <li><b>Methane:</b> burning napalm sets off methane above it. Unlit napalm needs a flame first.</li>
+        <li><b>Cryo</b> puts it out, turning it back into plain oil (which can catch again).</li>
+        <li><b>Methane</b> drifting into its flames goes off, and anything else its flames touch catches or blows up.</li>
       </ul>
     </article>
     <article class="card">
@@ -360,7 +360,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="c4"></canvas><div><h4>C-4</h4><span class="tag">polite until it isn't</span></div></div>
-      <p>Solid, stays put, completely harmless until heat touches it. Then it makes the biggest explosion in the game.</p>
+      <p>Solid, stays put, completely harmless until heat touches it. Then the <b>whole block goes off at once</b>: the biggest explosion in the game.</p>
       <ul>
         <li><b>Acid:</b> dissolves it without a bang.</li>
       </ul>
@@ -421,7 +421,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="clone"></canvas><div><h4>Clone</h4><span class="tag">a copy machine</span></div></div>
-      <p>Paint a block of clone, then drop something on it. The first powder, liquid or gas to touch it is what the whole block learns, and it pours that out of every open side forever. Indestructible.</p>
+      <p>Paint a block of clone, then drop something on it. The first powder, liquid or gas to touch it is what the whole block learns, and it pours that out of its bottom forever, steadily, like a spout (a gas comes out of the top). Indestructible.</p>
       <ul>
         <li><b>Can't copy solids:</b> wall, plant, ice, wax, C-4, fuse.</li>
         <li><b>Lava</b> → lava fountain. <b>Steam</b> → cloud machine. <b>Fire</b> → eternal flame. <b>Seed</b> → seed rain.</li>
@@ -508,7 +508,7 @@
       <tr><td><span class="chip" data-el="plant">Plant</span></td><td>35%</td><td><div class="bar" style="width:35%"></div></td></tr>
       <tr><td><span class="chip" data-el="stem">Stem</span></td><td>30%</td><td><div class="bar" style="width:30%"></div></td></tr>
       <tr><td><span class="chip" data-el="moltenwax">Molten wax</span></td><td>8%</td><td><div class="bar" style="width:8%"></div></td></tr>
-      <tr><td><span class="chip" data-el="napalm">Napalm</span></td><td colspan="2">doesn't catch; it throws flames around itself instead</td></tr>
+      <tr><td><span class="chip" data-el="napalm">Napalm</span></td><td colspan="2">already burning, from the moment you pour it</td></tr>
       <tr><td><span class="chip" data-el="wax">Wax</span></td><td colspan="2">never catches; it melts first</td></tr>
     </tbody>
   </table>
@@ -521,10 +521,10 @@
   <table class="tbl">
     <thead><tr><th>Explosive</th><th>Blast</th><th style="width:45%"></th></tr></thead>
     <tbody>
-      <tr><td><span class="chip" data-el="methane">Methane</span></td><td>4 px · pop</td><td><div class="bar" style="width:25%"></div></td></tr>
-      <tr><td><span class="chip" data-el="gunpowder">Gunpowder</span></td><td>6 px · bang</td><td><div class="bar" style="width:37.5%"></div></td></tr>
-      <tr><td><span class="chip" data-el="nitro">Nitro</span></td><td>10 px · BOOM</td><td><div class="bar" style="width:62.5%"></div></td></tr>
-      <tr><td><span class="chip" data-el="c4">C-4</span></td><td>16 px · crater</td><td><div class="bar" style="width:100%"></div></td></tr>
+      <tr><td><span class="chip" data-el="methane">Methane</span></td><td>4 px · pop</td><td><div class="bar" style="width:18%"></div></td></tr>
+      <tr><td><span class="chip" data-el="gunpowder">Gunpowder</span></td><td>6 px · bang</td><td><div class="bar" style="width:27%"></div></td></tr>
+      <tr><td><span class="chip" data-el="nitro">Nitro</span></td><td>12 px · BOOM, the whole pool at once</td><td><div class="bar" style="width:55%"></div></td></tr>
+      <tr><td><span class="chip" data-el="c4">C-4</span></td><td>22 px · crater, the whole block at once</td><td><div class="bar" style="width:100%"></div></td></tr>
     </tbody>
   </table>
   </div>
@@ -532,7 +532,7 @@
 
   <!-- ============================== RECIPES -->
   <h2 id="recipes">Recipes to try</h2>
-  <p class="sub">Press <kbd>Space</kbd> to pause while you set something up, then press it again to let it run.</p>
+  <p class="sub">Press <kbd>Space</kbd> to pause while you set something up, then press it again to let it run. Most of these need a floor: paint a line of Wall along the bottom, or press <kbd>B</kbd> for a closed box.</p>
   <div class="recipes">
     <div class="recipe"><h4>Oil spill</h4><p>Pour a pool of water, float oil on top, touch one edge with fire.</p><p class="how">The slick burns end to end. Steam puffs up where flame meets water.</p></div>
     <div class="recipe"><h4>Dripping candle</h4><p>Paint a small torch, then a tall block of wax sitting right on it.</p><p class="how">The wax melts, drips down the sides and re-hardens into puddles.</p></div>
@@ -554,6 +554,7 @@
   <h2 id="world">Gravity, wind and spigots</h2>
   <div class="rules">
     <div class="rule"><b>Gravity (<kbd>G</kbd>)</b><p>Flips everything. Powders and liquids fall up, gases sink, the spigots move to the bottom edge, and stems grow the other way.</p></div>
+    <div class="rule"><b>Edges (<kbd>B</kbd>)</b><p>Out of the box, the edges are open, like the original game: things that fall past the bottom are gone, and gases float away off the top. Press <kbd>B</kbd> (or the Edges button) for a closed box that holds everything in.</p></div>
     <div class="rule"><b>Wind (slider)</b><p>Pushes gases hardest, steers liquids as they flow, and nudges powders a little. It only moves things into empty space.</p></div>
     <div class="rule"><b>Spigots</b><p>Four pourers along the top. Click a spigot's name to pick what it pours: sand, water, salt, oil, gunpowder, nitro, napalm, concrete, lava, cryo, snow, acid, seed, soil or Random. Its five bars set how hard. <b>Off</b> stops it, and clicking any bar starts it again.</p></div>
     <div class="rule"><b>Speed and step</b><p><kbd>-</kbd> <kbd>+</kbd> run the world from quarter speed to 4×. <kbd>Space</kbd> pauses, <kbd>.</kbd> moves one tick at a time: good for watching a reaction frame by frame.</p></div>
@@ -576,7 +577,7 @@
     spout: [[118, 190, 250], null, 5], well: [[138, 22, 38], null, 6],
     torch: [[210, 48, 0], [255, 130, 24], 0, 1], gunpowder: [[150, 150, 128], null, 20],
     wax: [[238, 226, 206], null, 6], moltenwax: [[246, 234, 200], null, 6],
-    nitro: [[24, 164, 64], null, 14], napalm: [[232, 132, 60], null, 18],
+    nitro: [[24, 164, 64], null, 14], napalm: [[255, 100, 20], [255, 196, 64], 0, 1],
     c4: [[240, 230, 150], null, 6], concrete: [[172, 172, 170], null, 12],
     setconcrete: [[128, 128, 126], null, 8], fuse: [[222, 176, 202], null, 8],
     ice: [[168, 228, 255], null, 12], lava: [[222, 58, 18], [255, 176, 52], 0, 1],

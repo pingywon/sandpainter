@@ -137,7 +137,11 @@ export function fallPowder(x, y, i, w, p, slide = 100, sinkChance = 40) {
   const ny = y + gy;
   const W = w.w;
   if (p.wind !== 0 && applyWind(x, y, i, w, p, 0.25)) return true;
-  if (ny < 0 || ny >= w.h) return false;
+  if (ny < 0 || ny >= w.h) {
+    // Open edges (the default, like the original game): whatever falls past the bottom is gone.
+    if (!p.box) { w.set(i, EMPTY); return true; }
+    return false;
+  }
   const below = i + gy * W;
   const b = w.cells[below];
   if (b === EMPTY) { w.move(i, below); return true; }
@@ -184,6 +188,9 @@ export function flowLiquid(x, y, i, w, p, spread = 4, mobility = 100) {
       if (t === EMPTY) { w.move(i, j); return true; }
       if (canSink(id, t) && chance(20)) { w.swap(i, j); return true; }
     }
+  } else if (!p.box) {
+    w.set(i, EMPTY);
+    return true;
   }
   // sideways dispersion, biased by wind
   let dir;
@@ -232,6 +239,10 @@ export function riseGas(x, y, i, w, p, drift = 40, through = 25) {
       const j = above + dir;
       if (w.cells[j] === EMPTY) { w.move(i, j); return true; }
     }
+  } else if (!p.box) {
+    // Open edges: a gas that rises past the top drifts away.
+    w.set(i, EMPTY);
+    return true;
   }
   // blocked: wander sideways
   if (chance(drift)) {
@@ -277,12 +288,26 @@ export function tryIgnite(x, y, i, w) {
   return true;
 }
 
+/** One cell of a blast, `t` = squared distance from the centre as a fraction of the radius (0 centre, 1 rim). */
+function blastCell(w, i, t) {
+  const c = w.cells;
+  if (FLAGS[c[i]] & F_INDESTRUCTIBLE) return;
+  if (t > 0.72) {
+    if ((c[i] === EMPTY || (FLAGS[c[i]] & (F_LIQUID | F_GAS))) && rand() < 0.25) w.set(i, EMBER, 4 + randInt(14));
+    return;
+  }
+  // The core is a fireball that holds for a few steps (pinned flames) before it billows up.
+  if (rand() < 0.6 - t * 0.4) w.set(i, FIRE, t < 0.4 ? 128 + 2 + randInt(6) : 10 + randInt(20));
+  else if (rand() < 0.12) w.set(i, EMBER, 6 + randInt(16));
+  else w.set(i, EMPTY, 0);
+}
+
 /**
  * Circular blast. Inner cells become fire or empty, rim cells become embers,
  * indestructible cells survive.
  */
 export function explode(w, cx, cy, r) {
-  const W = w.w, H = w.h, c = w.cells;
+  const W = w.w, H = w.h;
   const r2 = r * r;
   const y0 = Math.max(0, cy - r), y1 = Math.min(H - 1, cy + r);
   const x0 = Math.max(0, cx - r), x1 = Math.min(W - 1, cx + r);
@@ -291,22 +316,53 @@ export function explode(w, cx, cy, r) {
     for (let x = x0; x <= x1; x++) {
       const dx = x - cx;
       const d2 = dx * dx + dy * dy;
-      if (d2 > r2) continue;
-      const i = y * W + x;
-      if (FLAGS[c[i]] & F_INDESTRUCTIBLE) continue;
-      const t = d2 / r2;
-      if (t > 0.72) {
-        if (c[i] === EMPTY || (FLAGS[c[i]] & (F_LIQUID | F_GAS))) {
-          if (rand() < 0.6) w.set(i, EMBER, 4 + randInt(14));
-        }
-        continue;
-      }
-      if (rand() < 0.55 - t * 0.4) w.set(i, FIRE, 6 + randInt(18));
-      else if (rand() < 0.35) w.set(i, EMBER, 6 + randInt(16));
-      else w.set(i, EMPTY, 0);
-      w.stamp[i] = w.parity;
+      if (d2 <= r2) blastCell(w, y * W + x, d2 / r2);
     }
   }
+}
+
+/**
+ * Set off the whole connected mass of the explosive at (cx, cy) in one step: the mass itself
+ * and everything within `r` of its edge. A block of C-4 bursts at once instead of burning
+ * through one cell at a time.
+ */
+export function detonate(w, cx, cy, r) {
+  const W = w.w, H = w.h, c = w.cells;
+  if (!w.mark) { w.mark = new Uint32Array(w.n); w.queue = new Int32Array(w.n); w.markGen = 0; }
+  const mark = w.mark, queue = w.queue;
+  w.markGen = (w.markGen + 2) >>> 0 || 2;
+  const inMass = w.markGen, blasted = w.markGen + 1;
+  const start = cy * W + cx, id = c[start];
+  let head = 0, tail = 0;
+  queue[tail++] = start; mark[start] = inMass;
+  while (head < tail) {
+    const i = queue[head++], x = i % W, y = (i / W) | 0;
+    if (x > 0 && c[i - 1] === id && mark[i - 1] !== inMass) { mark[i - 1] = inMass; queue[tail++] = i - 1; }
+    if (x < W - 1 && c[i + 1] === id && mark[i + 1] !== inMass) { mark[i + 1] = inMass; queue[tail++] = i + 1; }
+    if (y > 0 && c[i - W] === id && mark[i - W] !== inMass) { mark[i - W] = inMass; queue[tail++] = i - W; }
+    if (y < H - 1 && c[i + W] === id && mark[i + W] !== inMass) { mark[i + W] = inMass; queue[tail++] = i + W; }
+  }
+  const r2 = r * r;
+  for (let q = 0; q < tail; q++) {
+    const i = queue[q], x = i % W, y = (i / W) | 0;
+    const edge = (x > 0 && mark[i - 1] !== inMass) || (x < W - 1 && mark[i + 1] !== inMass)
+      || (y > 0 && mark[i - W] !== inMass) || (y < H - 1 && mark[i + W] !== inMass);
+    if (!edge) continue;
+    const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+    const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+    for (let yy = y0; yy <= y1; yy++) {
+      const dy = yy - y;
+      for (let xx = x0; xx <= x1; xx++) {
+        const j = yy * W + xx;
+        if (mark[j] === inMass || mark[j] === blasted) continue;
+        const dx = xx - x, d2 = dx * dx + dy * dy;
+        if (d2 > r2) continue;
+        mark[j] = blasted;
+        blastCell(w, j, d2 / r2);
+      }
+    }
+  }
+  for (let q = 0; q < tail; q++) blastCell(w, queue[q], 0);
 }
 
 /** Grow into adjacent `food` cells (plant into water). */

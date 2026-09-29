@@ -45,7 +45,12 @@ recipes to try. You can also open it from the **?** button inside the game.
 | `1` to `9` | Pick one of the first nine elements |
 | `E` / `R` | Eraser / Random |
 | `G` | Flip gravity |
+| `B` | Open edges (things fall off the bottom) or a closed box |
 | `C` twice | Clear everything |
+
+**The edges are open**, like the original game: whatever falls off the bottom is gone, so the
+screen never fills up. Press **B** (or the Edges button on the right) for a closed box that
+keeps everything.
 
 **The four spigots** above the canvas pour on their own. Click a spigot's name to choose
 what it pours, and its bars to set how hard. **OFF** stops it; click any bar to start it again.
@@ -88,10 +93,15 @@ five colours. Seeds on dry soil do nothing.
 the next, and about a second and a half later the chain reaches the block of C-4. Here it is
 just going off: the biggest blast in the game.
 
+![Burning napalm floating on water, flames rolling off its surface](docs/screenshots/14-napalm.png)
+
+**Napalm.** Burning oil: it flows and floats like oil but is already on fire, with flames rolling
+off the top. Water can't put it out; cryo can.
+
 ![Four clone blocks pouring lava, water, sand and snow](docs/screenshots/06-clone-fountains.png)
 
 **Clone fountains.** Paint a clone block, then drop a little of something on top: the whole
-block learns it and pours it out forever. Lava, water, sand and snow here. The water spills off the grey shelf, and where it
+block learns it and pours it out of its bottom forever. Lava, water, sand and snow here. The water spills off the grey shelf, and where it
 meets the lava on the floor, the two turn into rock.
 
 ![A lake with ice forming where cryo lands, snow melting into it, and ice blobs on the bottom](docs/screenshots/07-deep-freeze.png)

@@ -108,6 +108,10 @@ export function buildRail(root, app, speeds) {
   app.on('gravity', (g) => {
     grav.innerHTML = g > 0 ? '<span class="glyph">▼</span> Gravity down' : '<span class="glyph">▲</span> Gravity up';
   });
+  const edgeLabel = (box) => (box ? '<span class="glyph">▣</span> Closed box' : '<span class="glyph">⤓</span> Edges open');
+  const edges = button(edgeLabel(false), () => app.toggleBox(), 'wide');
+  edges.title = 'Open: things fall off the bottom and float off the top, like the original game. Closed box: the edges hold everything in. (B)';
+  app.on('box', (box) => { edges.innerHTML = edgeLabel(box); });
   const windRow = document.createElement('div');
   windRow.className = 'wind';
   const windLabel = document.createElement('label');
@@ -130,7 +134,7 @@ export function buildRail(root, app, speeds) {
     windRow.classList.toggle('active', v !== 0);
   });
   windRow.append(windLabel, wind, windVal);
-  sg.append(grav, windRow);
+  sg.append(grav, edges, windRow);
 
   /* Scenes */
   const sc = section('Scenes');

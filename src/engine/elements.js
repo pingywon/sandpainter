@@ -2,7 +2,7 @@
  * The element registry: what every element looks like and how it behaves.
  * Each update(x, y, i, world, params) runs at most once per cell per step.
  */
-import { chance, randInt } from './world.js';
+import { chance, rand, randInt } from './world.js';
 import * as ID from './ids.js';
 import {
   FLAGS, DENSITY, IGNITE,
@@ -10,7 +10,7 @@ import {
 } from './ids.js';
 import {
   near4, near4Flag, nearHot, nearHot8, fallPowder, flowLiquid, riseGas, applyWind,
-  convertNeighbour, produce, spawnFire, tryIgnite, explode,
+  convertNeighbour, produce, spawnFire, tryIgnite, explode, detonate,
 } from './behaviors.js';
 
 const {
@@ -67,7 +67,7 @@ def(WATER, {
   hint: 'Levels out, boils near heat, freezes near ice',
   update: (x, y, i, w, p) => {
     if (nearHot(x, y, i, w) && chance(55)) { w.set(i, STEAM); return; }
-    flowLiquid(x, y, i, w, p, 5);
+    flowLiquid(x, y, i, w, p, 8);
   },
 });
 
@@ -91,7 +91,7 @@ def(SALT_WATER, {
   name: 'Salt water', rgb: [104, 168, 236], variance: 12, flags: F_LIQUID, density: 1.2,
   update: (x, y, i, w, p) => {
     if (nearHot(x, y, i, w) && chance(45)) { w.set(i, chance(30) ? SALT : STEAM); return; }
-    flowLiquid(x, y, i, w, p, 5);
+    flowLiquid(x, y, i, w, p, 8);
   },
 });
 
@@ -100,7 +100,7 @@ def(OIL, {
   ignite: 60, hint: 'Floats on water, burns hot and long',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
-    flowLiquid(x, y, i, w, p, 3);
+    flowLiquid(x, y, i, w, p, 6);
   },
 });
 
@@ -275,27 +275,56 @@ def(NITRO, {
   name: 'Nitro', group: 'Liquids', rgb: [24, 164, 64], variance: 14, flags: F_LIQUID, density: 1.1,
   hint: 'Volatile liquid, big blast',
   update: (x, y, i, w, p) => {
-    if (nearHot(x, y, i, w)) { explode(w, x, y, 10); return; }
-    flowLiquid(x, y, i, w, p, 3);
+    if (nearHot(x, y, i, w)) { detonate(w, x, y, 12); return; }
+    flowLiquid(x, y, i, w, p, 6);
   },
 });
 
+/** Open air or a gas (not a flame) that burning napalm can push a flame into. */
+function catchable(c) {
+  return c === EMPTY || ((FLAGS[c] & F_GAS) !== 0 && c !== FIRE && c !== EMBER);
+}
+
 def(NAPALM, {
-  name: 'Napalm', group: 'Liquids', rgb: [232, 132, 60], variance: 18, flags: F_LIQUID | F_FUEL, density: 0.9,
-  hint: 'Sticky, burns for ages',
+  name: 'Napalm', group: 'Liquids', rgb: [255, 100, 20], rgb2: [255, 196, 64], flags: F_LIQUID | F_FUEL, density: 0.9,
+  hint: 'Burning oil: flows like oil, already on fire',
   update: (x, y, i, w, p) => {
-    if (nearHot(x, y, i, w)) {
-      if (chance(70)) produce(x, y, i, w, FIRE, 100, 10 + randInt(10));
-      if (chance(1.5)) { w.set(i, EMPTY); return; }
+    w.shade[i] = randInt(8);
+    // Cryo puts it out, leaving plain oil.
+    if (near4(x, y, i, w, CRYO) !== -1) { w.set(i, OIL); return; }
+    // Always alight: flames lick up into open air, or into a gas beside it, which is how it sets methane off.
+    if (chance(20)) {
+      const W = w.w, a = i - p.gravity * W, ay = y - p.gravity;
+      if (ay >= 0 && ay < w.h && catchable(w.cells[a])) spawnFire(w, a);
+      else {
+        const dx = rand() < 0.5 ? -1 : 1, nx = x + dx;
+        if (nx >= 0 && nx < W && catchable(w.cells[i + dx])) spawnFire(w, i + dx);
+      }
     }
-    flowLiquid(x, y, i, w, p, 2, 80);
+    // Now and then a ball of flame rolls up off the surface, like burning oil.
+    if (chance(0.5)) {
+      const W = w.w, up = -p.gravity, a = i + up * W;
+      if (y + up >= 0 && y + up < w.h && catchable(w.cells[a])) {
+        const cy = y + up * (2 + randInt(3)), r = 1 + randInt(3);
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            const xx = x + dx, yy = cy + dy;
+            if (dx * dx + dy * dy > r * r || xx < 0 || xx >= W || yy < 0 || yy >= w.h) continue;
+            if (catchable(w.cells[yy * W + xx])) w.set(yy * W + xx, FIRE, 8 + randInt(14));
+          }
+        }
+      }
+    }
+    // It slowly burns away, ending as one last flame.
+    if (chance(0.3)) { spawnFire(w, i); return; }
+    flowLiquid(x, y, i, w, p, 5);
   },
 });
 
 def(C4, {
   name: 'C-4', group: 'Solids', rgb: [240, 230, 150], variance: 6, flags: F_STATIC,
   hint: 'Stable until lit, then a crater',
-  update: (x, y, i, w) => { if (nearHot(x, y, i, w)) explode(w, x, y, 16); },
+  update: (x, y, i, w) => { if (nearHot(x, y, i, w)) detonate(w, x, y, 22); },
 });
 
 def(CONCRETE, {
@@ -336,7 +365,7 @@ def(LAVA, {
       if (j !== -1) { w.set(j, STEAM); w.set(i, ROCK); return; }
     }
     // Sparks off the surface: methane or fuel drifting just above lava catches, not only what touches it.
-    if (chance(1.5)) {
+    if (chance(0.4)) {
       const ay = y - p.gravity, a = i - p.gravity * w.w;
       if (ay >= 0 && ay < w.h && w.cells[a] === EMPTY) w.set(a, EMBER, 3 + randInt(5));
     }
@@ -360,7 +389,7 @@ def(CRYO, {
     j = near4Flag(x, y, i, w, F_HOT);
     if (j !== -1 && chance(80)) { w.set(j, EMPTY); w.set(i, chance(40) ? STEAM : CRYO); if (w.cells[i] === STEAM) return; }
     if (chance(0.4)) { w.set(i, EMPTY); return; }
-    flowLiquid(x, y, i, w, p, 4);
+    flowLiquid(x, y, i, w, p, 7);
   },
 });
 
@@ -488,14 +517,14 @@ def(ACID, {
       break;
     }
     if (chance(4) && near4(x, y, i, w, WATER) !== -1) { w.set(i, WATER); return; }
-    flowLiquid(x, y, i, w, p, 3);
+    flowLiquid(x, y, i, w, p, 6);
   },
 });
 
 def(CLONE, {
   name: 'Clone', group: 'Producers', rgb: [226, 190, 255], variance: 6, flags: F_STATIC | F_INDESTRUCTIBLE,
   hint: 'Drop something on it: it pours that out forever',
-  update: (x, y, i, w) => {
+  update: (x, y, i, w, p) => {
     const a = w.aux[i];
     if (a === 0) {
       const j = near4Flag(x, y, i, w, F_POWDER | F_LIQUID | F_GAS);
@@ -507,7 +536,9 @@ def(CLONE, {
       return;
     }
     const e = ELEMENTS[a];
-    produce(x, y, i, w, a, 8, e && e.initAux ? e.initAux() : 0);
+    // Pour out of the bottom (the top for a gas), gently, like a spout: pouring from every side flooded the screen.
+    const dir = (FLAGS[a] & F_GAS) ? -p.gravity : p.gravity, ny = y + dir, j = i + dir * w.w;
+    if (ny >= 0 && ny < w.h && w.cells[j] === EMPTY && chance(5)) w.set(j, a, e && e.initAux ? e.initAux() : 0);
   },
 });
 

@@ -87,17 +87,51 @@ Engine conventions:
   row runs into something solid within `POOL_REACH` (24) cells on both sides without meeting air;
   upward growth also needs water or ground above the target. A plant under a falling stream
   used to climb it to the spigot (owner: "plants should grow, but not up the water blocking it").
-- Lava spits an ember into the empty cell above it (1.5% per step), so methane drifting just
-  above lava goes up (owner: "lava and napalm should ignite methane"). Burning napalm already
-  set methane off; unlit napalm deliberately does not (it is fuel, not a flame).
+- Lava spits an ember into the empty cell above it (0.4% per step; 1.5% was too busy), so
+  methane drifting just above lava goes up (owner: "lava and napalm should ignite methane").
+- **Napalm is burning oil** (owner: "napalm should like oil on fire"): it flows like oil, is
+  always alight (pushes flames into open air or gas beside it, so methane goes off; an
+  occasional ball of flame rolls off the surface), burns away 0.3% per step, floats on water
+  and water cannot put it out; cryo turns it back into OIL. It is not `F_HOT` on purpose: a hot
+  liquid floating on water would boil the pond into steam.
 - A clone cell with nothing learned copies the element of a neighbouring clone cell, so the
-  whole block learns from one touch and pours from every open side (sand sitting on top used
-  to do nothing).
-- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), paused }`.
+  whole block learns from one touch. It pours only out of its bottom (a gas out of its top),
+  5% per cell per step: pouring from every side flooded the screen.
+- **C-4 and nitro detonate as a whole** (`detonate()` in behaviors.js): flood-fill the
+  connected mass, blast every cell within `r` of its edge (C-4 22, nitro 12) in one step.
+  With one-cell-per-step physics a block otherwise burned through over ~10 steps (owner: "c4
+  should explode"). Blast cores are pinned flames so the fireball holds a few steps; blasts
+  leave far fewer embers than before (they cluttered the screen).
+- **Fixed timestep:** the frame loop steps the world 60 times a second times the speed,
+  whatever the refresh rate (the original does the same). One step per rAF ran 2.4x fast on a
+  144 Hz screen. Catch-up is capped at 4x speed steps per frame so a slow machine slows down
+  instead of spiralling.
+- **Open edges** (`params.box = false`, the default; `B` or the Edges button toggles): a
+  powder or liquid falling past the gravity-far edge and a gas rising past the other edge are
+  removed, exactly like the original's `doGravity`/`doRise`. This is the main reason the
+  original never fills up (owner: "there are actually too many particles ... look at the
+  original for the differences"). Scenes and recipes that need a floor paint one or use `box`.
+- Liquids reach further sideways per step (water/salt water 8, oil/nitro/acid 6, cryo 7,
+  napalm 5; lava and molten wax stay thick) so pours level into flat layers instead of heaping
+  (owner: "oil etc should act more like a fluid and a bit less like sand").
+- Default brush is 4 px (index 2), the original's default; 8 painted four times as much.
+- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), box, paused }`.
 - Flags drive generic behaviour: `F_HOT` ignites and melts, `F_FUEL` keeps fire alive,
   `F_INDESTRUCTIBLE` survives acid and blasts.
 - The frame loop runs on requestAnimationFrame with a 45 ms timer fallback, because some
-  embedded panes never fire rAF.
+  embedded panes never fire rAF; either way it steps by elapsed time (see Fixed timestep).
+
+## The original, for comparison
+
+Its code is plain JS at `https://artsology.com/sandpainting2.html` (`js/sandpainting/*.js`:
+canvasConfig, elements-3, particles, spigots, cursor, menu-3, game). It is GPL (Josh Don's
+Project Sand): read it to learn mechanics, never copy code. What we learned on 2026-09-29:
+660x580 grid drawn 1 grain per CSS pixel with one flat colour per element; 60 fps fixed;
+default pen 4 (sizes 2-64); spigots identical to ours (widths 0-25, 10 rows, 10%); falling
+off the bottom and rising off the top deletes the grain; explosions (C-4, napalm, methane,
+nitro) are painted fire discs from a separate particle system, not craters; there is no
+clone. We did not copy the flat colours (it would change the look); offer it if the owner
+still finds the screen busy.
 
 ## Adding an element
 
@@ -173,7 +207,8 @@ Change an element, change the guide, and rerun `node tools/engine_checks.mjs`.
 GitHub release: `gh release create vX.Y.Z dist/Sandpainter-vX.Y.Z.zip Sandpainter.html
 Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29);
 v1.0.1 the same day fixed the four bugs above; v1.1.0 (same day) is the one-cell-per-step
-physics, plants, lava sparks, clone learning and the paused badge. Point the README download
+physics, plants, lava sparks, clone learning, the paused badge, then open edges, the fixed
+timestep, whole-block C-4/nitro, burning napalm, gentler clones and flatter liquids. Point the README download
 line at the new zip name when you cut one.
 
 ## Publishing

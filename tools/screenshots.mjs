@@ -21,6 +21,7 @@ const S = sandpainter;
 const I = { EMPTY: 0, WALL: 1, SAND: 2, WATER: 3, SALT: 4, OIL: 6, PLANT: 7, FIRE: 8, TORCH: 12, GUNPOWDER: 13,
   WAX: 14, NITRO: 16, C4: 18, ICE: 22, LAVA: 23, ROCK: 24, CRYO: 25, SOIL: 27, SNOW: 29, SEED: 30, STEM: 31, CLONE: 38 };
 S.params.paused = true;
+if (!S.params.box) S.toggleBox();
 S.world.clear();
 for (let k = 0; k < 4; k++) S.spigots.set(k, { rate: 0 });
 const W = S.world.w;
@@ -77,6 +78,15 @@ const SCENES = [
       while (n < 1500 && count(I.C4) >= c0) { S.tick(1); n++; }
       S.tick(4);
       ({ ticksToC4: n, c4Left: count(I.C4), fire: count(I.FIRE, 39) });`,
+  },
+  {
+    name: '14-napalm',
+    zoom: { x: 120, y: 250, w: 400, h: 110 },
+    js: `
+      rect(0, 330, 639, 470, I.WATER);
+      rect(90, 312, 550, 329, 17);
+      S.tick(260);
+      ({ napalm: count(17), fire: count(I.FIRE) });`,
   },
   {
     name: '06-clone-fountains',

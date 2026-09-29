@@ -20,6 +20,7 @@ export function bindShortcuts(app, speeds) {
       case 'e': case 'E': app.setElement(EMPTY); break;
       case 'r': case 'R': app.setElement(RANDOM); break;
       case 'g': case 'G': app.flipGravity(); break;
+      case 'b': case 'B': app.toggleBox(); break;
       case 'c': case 'C': app.emit('request-clear'); break;
       case '-': case '_': app.setSpeed(speeds[Math.max(0, speeds.indexOf(p.speed) - 1)]); break;
       case '=': case '+': app.setSpeed(speeds[Math.min(speeds.length - 1, speeds.indexOf(p.speed) + 1)]); break;

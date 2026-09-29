@@ -218,8 +218,40 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   rect(u.w, 30, 75, 90, 88, ID.NAPALM);
   rect(u.w, 30, 60, 90, 74, ID.METHANE);
   const u0 = count(u.w, ID.METHANE);
-  run(u, 100);
-  check('unlit napalm does not set off methane (it needs a flame)', count(u.w, ID.METHANE) >= u0 * 0.9, `methane ${u0} -> ${count(u.w, ID.METHANE)}`);
+  run(u, 200);
+  check('napalm is already burning: it sets off methane with no spark', count(u.w, ID.METHANE) < u0 * 0.1, `methane ${u0} -> ${count(u.w, ID.METHANE)}`);
+}
+{
+  const s = scene();
+  rect(s.w, 0, 60, 119, 88, ID.WATER);
+  rect(s.w, 20, 54, 100, 59, ID.NAPALM);
+  const n0 = count(s.w, ID.NAPALM);
+  let fire = 0;
+  run(s, 150, () => { fire = Math.max(fire, count(s.w, ID.FIRE)); });
+  check('napalm on water keeps burning (water cannot put it out)', count(s.w, ID.NAPALM) > n0 * 0.4 && fire > 20,
+    `napalm ${n0} -> ${count(s.w, ID.NAPALM)}, most flames seen ${fire}`);
+  const c = scene();
+  rect(c.w, 30, 70, 90, 88, ID.NAPALM);
+  rect(c.w, 30, 60, 90, 69, ID.CRYO);
+  const c0 = count(c.w, ID.NAPALM);
+  run(c, 60);
+  // It turns back into oil, which the flames still around can light again, so only the napalm is counted.
+  check('cryo puts napalm out', count(c.w, ID.NAPALM) < c0 * 0.1, `napalm ${c0} -> ${count(c.w, ID.NAPALM)}, oil ${count(c.w, ID.OIL)}`);
+}
+{
+  const s = scene();
+  rect(s.w, 40, 50, 80, 80, ID.C4);
+  const c0 = count(s.w, ID.C4);
+  s.w.set(50 * W + 39, ID.FIRE, 20);
+  run(s, 2);
+  check('a block of C-4 goes off all at once', count(s.w, ID.C4) === 0, `C-4 ${c0} -> ${count(s.w, ID.C4)} two steps after lighting one corner`);
+  const n = scene();
+  rect(n.w, 10, 70, 110, 88, ID.NITRO);
+  const m0 = count(n.w, ID.NITRO);
+  n.w.set(69 * W + 10, ID.FIRE, 20);
+  run(n, 2);
+  // A drop that has split off the pool is not part of it, so a stray cell or two may be left.
+  check('a pool of nitro goes off all at once', count(n.w, ID.NITRO) <= m0 * 0.02, `nitro ${m0} -> ${count(n.w, ID.NITRO)} two steps after lighting one end`);
 }
 {
   const s = scene();
@@ -228,6 +260,34 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   const s0 = count(s.w, ID.SAND);
   run(s, 600);
   check('a clone with sand dropped on top pours sand', count(s.w, ID.SAND) > s0 * 5, `sand ${s0} -> ${count(s.w, ID.SAND)}`);
+}
+
+{
+  // Open edges (the default, like the original): no floor means things fall off the bottom.
+  const make = (box) => {
+    const w = new World(W, H); const sp = new Spigots(); sp.list.forEach((q) => { q.rate = 0; });
+    return { w, sp, p: { element: 0, brush: 3, speed: 1, gravity: 1, wind: 0, box, paused: false } };
+  };
+  const open = make(false), boxed = make(true);
+  rect(open.w, 40, 10, 80, 30, ID.SAND); rect(boxed.w, 40, 10, 80, 30, ID.SAND);
+  const s0 = count(open.w, ID.SAND);
+  run(open, 400); run(boxed, 400);
+  check('with open edges sand falls off the bottom; in a closed box it piles up',
+    count(open.w, ID.SAND) === 0 && count(boxed.w, ID.SAND) === s0, `open ${count(open.w, ID.SAND)}, closed box ${count(boxed.w, ID.SAND)} of ${s0}`);
+}
+{
+  // Liquids level out: oil poured onto water in a basin ends up as a flat layer, not a heap.
+  const s = scene();
+  rect(s.w, 10, 40, 11, 88, ID.WALL); rect(s.w, 108, 40, 109, 88, ID.WALL);
+  rect(s.w, 12, 70, 107, 88, ID.WATER);
+  run(s, 500, () => { for (let x = 58; x <= 62; x++) if (s.w.cells[5 * W + x] === 0 && Math.random() < 0.3) s.w.set(5 * W + x, ID.OIL); });
+  run(s, 300);
+  let top = H, low = 0;
+  for (let x = 14; x <= 105; x++) {
+    let y = 0; while (y < H && s.w.cells[y * W + x] !== ID.OIL) y++;
+    if (y < H) { top = Math.min(top, y); low = Math.max(low, y); }
+  }
+  check('oil poured onto water spreads out flat', low - top <= 3, `oil surface varies by ${low - top} px across the basin`);
 }
 
 if (failed) {
