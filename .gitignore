@@ -8,3 +8,7 @@ __pycache__/
 
 # Claude Code per-machine settings (shared settings in .claude/ are committed)
 .claude/settings.local.json
+
+# Release zips (attached to GitHub releases, not committed) and local worktrees
+dist/*.zip
+.claude/worktrees/

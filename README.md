@@ -1,67 +1,208 @@
 # Sandpainter
 
-A falling-sand painting toy: a modern remake of Artsology's Sandpainting Game v2.
-Four spigots pour from the top, thirty elements react (fire, water, oil, lava, ice,
-plants, explosives, acid, clone blocks), and you paint into the mix with a brush.
+A falling-sand painting toy. Four spigots pour from the top, and you paint into the
+mix: sand, water, oil, lava, ice, plants, acid, explosives and more. 26 elements to
+paint, 9 more they turn into, and they all react with each other.
 
-Written from scratch in plain HTML, CSS and ES modules. No build step, no dependencies.
+A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#screenshots).**
 
-## Run it
+## Play it
 
-Modules need to be served over http, so start any static server in this folder:
+You don't need to install anything.
 
-```bash
-python3 -m http.server 5173
-```
+1. Open the [**Releases** page](https://github.com/pingywon/sandpainter/releases/latest)
+   and download **`Sandpainter-v1.0.1.zip`** (under "Assets").
+2. Unzip it.
+   - **Windows:** right-click the zip, choose **Extract All**, then **Extract**.
+   - **Mac:** double-click the zip.
+3. Open the new **Sandpainter** folder and double-click **`Sandpainter.html`**.
 
-Then open http://localhost:5173/. On Windows the command is `python` instead of `python3`.
+It opens in your web browser (Chrome, Edge, Firefox or Safari) and works without internet.
+
+If you already have this repository on your computer, skip the zip: double-click
+`Sandpainter.html` in the top folder.
+
+**Your saves** (the three save slots and the auto-save) are kept inside the browser you
+played in. If you open the game in a different browser, they won't be there.
+
+## Learn the elements
+
+Double-click **`Element-Guide.html`**, which is in the same folder. It covers what every
+element does, who floats on whom, how fast things burn, how big each explosion is, and
+recipes to try. You can also open it from the **?** button inside the game.
 
 ## Controls
 
-| Key | Action |
+| Do this | What happens |
 |---|---|
-| Drag | Paint the selected element |
-| Right-drag or Shift-drag | Erase |
+| Click and drag | Paint the element you picked on the left |
+| Right-click and drag, or Shift and drag | Erase |
 | `Space` | Pause / play |
-| `.` | Step one frame |
-| `Ctrl+Z` | Undo the last stroke |
-| `[` `]` | Brush smaller / larger |
-| `-` `+` | Slower / faster |
-| `1`..`9` | Quick-pick the first nine elements |
-| `E` `R` | Eraser / Random |
+| `.` | Move forward one tick |
+| `Ctrl` + `Z` | Undo the last stroke |
+| `[` and `]` | Smaller / bigger brush |
+| `-` and `+` | Slower / faster |
+| `1` to `9` | Pick one of the first nine elements |
+| `E` / `R` | Eraser / Random |
 | `G` | Flip gravity |
-| `C` (twice) | Clear |
+| `C` twice | Clear everything |
 
-The rail on the right has speed, pause, undo, gravity, a wind slider, three local save
-slots (browser storage) and a PNG snapshot.
+**The four spigots** above the canvas pour on their own. Click a spigot's name to choose
+what it pours, and its bars to set how hard. **OFF** stops it; click any bar to start it again.
 
-## Layout
+The panel on the right also has a wind slider, three save slots and a **Download PNG**
+button for a picture of your painting.
+
+## Screenshots
+
+Every picture below is the real game, set up with the same elements you can paint.
+
+![The whole game: element tray on the left, four spigots above the canvas, controls on the right](docs/screenshots/01-overview.png)
+
+**The whole game.** Elements on the left, the four spigots along the top, controls on the
+right. Here the spigots pour sand, water, salt and oil into two walled pools. On the left,
+plants on the pool floor drank the water and grew into it. On the right, oil floats on the
+water.
+
+![A slick of oil on water, burning across its whole surface](docs/screenshots/02-oil-fire.png)
+
+**Oil spill.** Oil floats on water. One spark at the left edge and the fire races across the
+whole slick in a fraction of a second. The water underneath doesn't burn; where flame
+touches it, the flame dies in a puff of steam.
+
+![Two streams of lava falling into a lake, with rock mounds on the bottom and steam at the top](docs/screenshots/03-volcano.png)
+
+**Volcano.** Two spigots pour lava into a lake. Lava is the heaviest liquid, so it sinks, but
+every drop that touches water cools into rock (the brown mounds) and boils the water into
+steam, which rises to the top.
+
+![A row of green stems with pink, gold, violet, coral and pale-blue flowers growing out of brown soil](docs/screenshots/04-garden.png)
+
+**Garden** (zoomed in 2×). A bed of soil, one line of water to soak it, then seeds dropped on
+top. Each seed on wet soil grows a stem 6 to 14 pixels tall and opens a flower in one of
+five colours. Seeds on dry soil do nothing.
+
+![A fireball where a block of C-4 was, at the end of a burning gunpowder trail on sand](docs/screenshots/05-chain-reaction.png)
+
+**Chain reaction.** One spark at the left end of a gunpowder trail. Each grain's pop sets off
+the next, and in about a third of a second the chain reaches the block of C-4 on the right:
+the biggest blast in the game.
+
+![Four clone blocks pouring lava, water, sand and snow](docs/screenshots/06-clone-fountains.png)
+
+**Clone fountains.** A clone block copies the first thing that touches it and pours it out
+forever: lava, water, sand and snow here. The water spills off the grey shelf, and where it
+meets the lava on the floor, the two turn into rock.
+
+![A lake with ice forming where cryo lands, snow melting into it, and ice blobs on the bottom](docs/screenshots/07-deep-freeze.png)
+
+**Deep freeze.** Cryo pours from the outer spigots and freezes the surface into pale ice where
+it lands. Snow from the middle spigots melts as soon as it hits the water. The blobs on the
+bottom are ice, slowly freezing the lake from below.
+
+![A block of wax melting from the bottom over a torch, with drips falling](docs/screenshots/08-candle.png)
+
+**Candle** (zoomed in 2×). A block of wax sitting on a torch. Wax never burns directly: it
+melts, drips down as molten wax, and hardens again away from the heat, so the block is
+eaten from the bottom up.
+
+![Soil on the ceiling with flowers hanging down from it](docs/screenshots/09-upside-down.png)
+
+**Upside-down garden** (zoomed in 2×). Press `G` and gravity flips, so the soil falls to the
+ceiling. Water it and drop seeds: they fall *up* onto it and grow downward, so the flowers
+hang.
+
+![The help box listing every key](docs/screenshots/10-help.png)
+
+**Help.** Click **?** in the top-right corner for every key, how the spigots work, and a link
+to the element guide.
+
+<img src="docs/screenshots/11-element-guide.png" alt="The element guide, showing cards for sand, salt, gunpowder and more" width="640">
+
+**The element guide.** `Element-Guide.html`, in the same folder as the game. It covers every
+element, what it does to the others, and uses the game's real colours.
+
+<img src="docs/screenshots/12-phone.png" alt="The game on a phone-sized screen" width="300">
+
+**On a phone.** The spigots line up in four columns, and the elements sit under the canvas.
+
+## Changing the code
+
+Everything above is for playing. This part is only for editing the game.
+
+**Why there are two versions.** The source code lives in `src/` as separate JavaScript
+files. Browsers refuse to load files like that from a page you double-clicked, so to run
+the source version you need a tiny local web server. It doesn't do anything clever; it
+only hands the files to the browser. `Sandpainter.html` is the same game with every file
+merged into one, so it needs no server.
+
+Run the source version:
+
+```bash
+python3 -m http.server 5173      # on Windows: python -m http.server 5173
+```
+
+then open http://localhost:5173/.
+
+After changing anything in `src/`, `styles.css` or `index.html`, rebuild the one-file
+version and commit it along with your change:
+
+```bash
+python3 tools/build_standalone.py
+```
+
+Check the element guide still matches the engine:
+
+```bash
+node tools/engine_checks.mjs
+```
+
+Retake the screenshots in `docs/screenshots/` (needs Chromium; Node 22+ can drop the flag):
+
+```bash
+node --experimental-websocket tools/screenshots.mjs          # all of them
+node --experimental-websocket tools/screenshots.mjs 02 05    # just these
+```
+
+Make a release zip (it lands in `dist/`):
+
+```bash
+python3 tools/make_release.py 1.0.1
+```
+
+### What's where
 
 ```
-index.html            page markup
-styles.css            dark atelier theme
-src/main.js           bootstrap, frame loop, pointer painting, app API
-src/engine/world.js   cell grid and RNG
-src/engine/ids.js     element ids and flag tables
-src/engine/behaviors.js  shared movement and reaction rules
-src/engine/elements.js   the element registry (what each element is and does)
-src/engine/simulation.js one simulation step
+Sandpainter.html         the one-file game (generated, do not edit by hand)
+Element-Guide.html       the element guide (hand-written)
+index.html               page markup for the source version
+styles.css               the "dark atelier" look
+src/main.js              start-up, frame loop, painting with the mouse, app API
+src/engine/world.js      the grid of cells and the random number generator
+src/engine/ids.js        element ids and property tables
+src/engine/behaviors.js  shared rules: falling, flowing, rising, burning, exploding
+src/engine/elements.js   every element: its colour, weight and what it does
+src/engine/simulation.js one tick of the world
 src/engine/spigots.js    the four pourers
 src/engine/brush.js      painting
-src/engine/history.js    undo stack
-src/engine/storage.js    save slots, PNG snapshot
-src/render/renderer.js   palette and pixel rendering, brush cursor
-src/ui/*.js              tray, rail, spigot bar, shortcuts
-tools/build_artifact.py  regenerates dist/sandpainter.html
-dist/sandpainter.html    index.html without the document wrapper, for publishing as a claude.ai artifact
+src/engine/history.js    undo
+src/engine/storage.js    save slots and PNG pictures
+src/render/renderer.js   drawing the grid to the screen
+src/ui/*.js              the element tray, right-hand panel, spigot bar, keyboard keys
+tools/                   build scripts, engine checks, screenshot maker, embedded fonts
+docs/screenshots/        the pictures in this README
+dist/sandpainter.html    the version published as a claude.ai artifact
 ```
 
-## Adding an element
+### Adding an element
 
 1. Add an id in `src/engine/ids.js`.
 2. Add a `def(...)` in `src/engine/elements.js` with colour, flags, density and an
-   `update` function composed from the helpers in `behaviors.js`.
+   `update` function built from the helpers in `behaviors.js`.
 3. Put the id in `TRAY` (and `SPIGOT_OPTIONS` if spigots may pour it).
+4. Add it to `Element-Guide.html`, then rebuild `Sandpainter.html`.
 
-`window.sandpainter` exposes the app in the console: `sandpainter.tick(100)` runs
-steps, `sandpainter.paint(x0, y0, x1, y1, id, size)` paints.
+In the browser console, `window.sandpainter` is the app: `sandpainter.tick(100)` runs 100
+ticks, `sandpainter.paint(x0, y0, x1, y1, id, size)` paints.
+
+Fonts: Fraunces and IBM Plex Mono, under the SIL Open Font License 1.1 (`tools/fonts/`).

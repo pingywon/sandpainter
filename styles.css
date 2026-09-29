@@ -178,19 +178,21 @@ body {
 
 /* plate */
 .plate-wrap {
+  --spigots-h: 56px; --status-h: 24px; --wrap-gap: 10px;
   display: grid;
-  grid-template-rows: 46px minmax(0, 1fr) 24px;
-  gap: 10px;
+  grid-template-rows: var(--spigots-h) minmax(0, 1fr) var(--status-h);
+  gap: var(--wrap-gap);
   min-height: 0;
   min-width: 0;
   justify-items: center;
+  container-type: size;
 }
+/* Width comes from whichever runs out first, the column's width or its height, so the grains stay square. */
 .plate {
   position: relative;
   aspect-ratio: 4 / 3;
-  height: 100%;
+  width: min(100cqw, (100cqh - var(--spigots-h) - var(--status-h) - 2 * var(--wrap-gap)) * 4 / 3);
   max-width: 100%;
-  max-height: 100%;
   background: var(--frame);
   border-radius: 6px;
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(245,165,36,.10);
@@ -216,7 +218,7 @@ body {
   position: relative;
   width: var(--plate-w, 100%);
   max-width: 100%;
-  height: 46px;
+  height: var(--spigots-h);
 }
 .spigot {
   position: absolute; left: var(--x); top: 0; transform: translateX(-50%);
@@ -230,28 +232,45 @@ body {
   animation-delay: calc(var(--i, 0) * 60ms + 200ms);
   transition: opacity .2s;
 }
-.spigot.off { opacity: .55; }
 .spigot-head { display: flex; align-items: center; gap: 6px; }
-.spigot .chip { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.spigot .chip { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.5); transition: opacity .2s; }
+.spigot.off .chip { opacity: .3; }
 .spigot select {
   appearance: none; -webkit-appearance: none;
   background: transparent; border: 0; color: var(--text);
-  font: 500 11px var(--font-mono); letter-spacing: .02em;
-  padding: 0 12px 0 0; cursor: pointer;
+  font: 500 12px var(--font-mono); letter-spacing: .02em;
+  padding: 2px 16px 2px 4px; border-radius: 4px; cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 6px) 55%, calc(100% - 3px) 55%;
-  background-size: 3px 3px; background-repeat: no-repeat;
+  background-position: calc(100% - 8px) 55%, calc(100% - 4px) 55%;
+  background-size: 4px 4px; background-repeat: no-repeat;
 }
+.spigot select:hover { background-color: var(--plate-2); }
 .spigot select:focus-visible { outline: 1px solid var(--amber); outline-offset: 2px; border-radius: 3px; }
-.rate { display: flex; gap: 3px; align-items: flex-end; height: 16px; }
-.rate button {
-  width: 7px; height: calc(4px + var(--n) * 2.4px);
-  border: 0; border-radius: 1.5px; padding: 0; cursor: pointer;
-  background: var(--line-2);
-  transition: background .18s, transform .18s;
+/* The open list is drawn by the OS (white on Windows) unless the options carry their own colours. */
+.spigot select option { background: var(--plate); color: var(--text); }
+.rate { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+.rate .off {
+  align-self: center; margin-right: 3px;
+  height: 16px; padding: 0 6px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: transparent; color: var(--muted);
+  font: 600 9px/14px var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+  transition: background .18s, color .18s, border-color .18s;
 }
-.rate button:hover { transform: scaleY(1.15); transform-origin: bottom; background: var(--muted); }
-.rate button.on { background: var(--amber); box-shadow: 0 0 6px -1px var(--amber); }
+.rate .off:hover { border-color: var(--amber); color: var(--text); }
+.spigot.off .rate .off { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+/* Tall transparent hit area; the visible bar is drawn at its foot. */
+.rate .bar {
+  position: relative; width: 9px; height: 22px;
+  border: 0; padding: 0; background: transparent; cursor: pointer;
+}
+.rate .bar::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+  height: calc(3px + var(--n) * 3.6px); border-radius: 1.5px;
+  background: var(--line-2);
+  transition: background .18s, transform .18s; transform-origin: bottom;
+}
+.rate .bar:hover::before { transform: scaleY(1.12); background: var(--muted); }
+.rate .bar.on::before { background: var(--amber); box-shadow: 0 0 6px -1px var(--amber); }
 .rate button:focus-visible { outline: 1px solid var(--amber); outline-offset: 2px; }
 
 .status {
@@ -269,7 +288,7 @@ body {
   position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 8px);
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px 8px 14px;
-  background: rgba(20, 18, 16, .92);
+  background: color-mix(in srgb, var(--ink-2) 92%, transparent);
   border: 1px solid var(--line-2);
   border-radius: 999px;
   color: var(--text);
@@ -358,6 +377,7 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
 .help td { padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
 .help td:first-child { width: 96px; white-space: nowrap; }
 .help .fine { font-size: 11.5px; color: var(--faint); }
+.help a { color: var(--amber-2); text-underline-offset: 3px; }
 .shot { width: min(92vw, 720px); }
 .shot img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; border-radius: 6px; background: var(--frame); box-shadow: 0 0 0 1px rgba(245,165,36,.15); margin-bottom: 12px; }
 .shot .row .btn { text-decoration: none; }
@@ -388,7 +408,7 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
     gap: 16px;
     padding: 12px 16px 24px;
   }
-  .plate-wrap { order: 1; grid-template-rows: 46px auto 24px; }
+  .plate-wrap { order: 1; grid-template-rows: var(--spigots-h) auto var(--status-h); container-type: normal; }
   .plate { height: auto; width: 100%; cursor: default; }
   .tray { order: 2; overflow: visible; padding-right: 0; }
   .group { margin-bottom: 12px; }
@@ -401,5 +421,13 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
   .tagline { display: none; }
   .wordmark { font-size: 22px; }
   .rail { grid-template-columns: 1fr; }
-  .spigot select { max-width: 74px; }
+  /* Four even columns: absolutely placed chips overlap at this width. */
+  .spigot-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .spigot { position: static; transform: none; animation: none; min-width: 0; padding: 4px 3px 3px; }
+  .spigot-head { max-width: 100%; }
+  .spigot .chip { display: none; }
+  .spigot select { min-width: 0; max-width: 100%; font-size: 11px; padding-right: 13px; }
+  .rate { gap: 2px; }
+  .rate .off { padding: 0 4px; margin-right: 1px; font-size: 8px; letter-spacing: .04em; }
+  .rate .bar { width: 6px; }
 }

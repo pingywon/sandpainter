@@ -96,8 +96,11 @@ function toWorld(ev) {
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
 plate.addEventListener('pointerdown', (ev) => {
+  // The toast sits inside the plate; capturing its presses would paint under it and swallow its button clicks.
+  if (ev.target.closest('#toast')) return;
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
+  if (!toastEl.hidden) hideToast();
   plate.setPointerCapture(ev.pointerId);
   painting = true;
   erasing = ev.button === 2 || ev.shiftKey;
@@ -224,7 +227,7 @@ function showToast(msg, actions = []) {
   }
   toastEl.hidden = false;
   requestAnimationFrame(() => toastEl.classList.add('show'));
-  if (!actions.length) toastTimer = setTimeout(hideToast, 2200);
+  toastTimer = setTimeout(hideToast, actions.length ? 12000 : 2200);
 }
 function hideToast() {
   toastEl.classList.remove('show');
