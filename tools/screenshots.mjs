@@ -42,7 +42,7 @@ const SCENES = [
       const o0 = count(I.OIL);
       S.paint(84, y + 1, 110, y + 1, I.FIRE, 3);
       let n = 0;
-      while (n < 400 && count(I.OIL) > o0 * 0.5) { S.tick(1); n++; }
+      while (n < 1500 && count(I.OIL) > o0 * 0.5) { S.tick(1); n++; }
       ({ ticks: n, fire: count(I.FIRE), oil: count(I.OIL), oilStart: o0 });`,
   },
   {
@@ -82,7 +82,7 @@ const SCENES = [
     name: '06-clone-fountains',
     js: `
       const xs = [128, 256, 384, 512], els = [I.LAVA, I.WATER, I.SAND, I.SNOW];
-      xs.forEach((x, k) => { rect(x - 8, 40, x + 8, 50, I.CLONE); rect(x - 14, 26, x + 14, 36, els[k]); });
+      xs.forEach((x, k) => { rect(x - 8, 40, x + 8, 50, I.CLONE); rect(x - 4, 30, x + 4, 36, els[k]); });
       rect(200, 300, 320, 306, I.WALL);
       S.tick(1200);
       ({ lava: count(I.LAVA), water: count(I.WATER), sand: count(I.SAND), snow: count(I.SNOW), rock: count(I.ROCK) });`,
@@ -184,6 +184,13 @@ await run('11-element-guide', async (p) => {
   await p.sleep(400);
   await p.shot(`${OUT}/11-element-guide.png`);
 }, { width: 1280, height: 1500 });
+
+await run('13-paused', async (p) => {
+  await p.eval(PRE + `pour(0, I.SAND, 2); pour(1, I.WATER, 2); pour(2, I.SALT, 2); pour(3, I.OIL, 2);
+    rect(40, 380, 600, 470, I.WATER); S.tick(400); S.params.paused = false; S.togglePause();`);
+  await p.sleep(900);
+  await p.shot(`${OUT}/13-paused.png`);
+}, { width: 1400, height: 900 });
 
 await run('12-phone', async (p) => {
   await p.eval(PRE + `rect(0, 380, 639, 470, I.WATER); rect(0, 360, 639, 378, I.OIL);

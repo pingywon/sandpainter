@@ -54,7 +54,7 @@ and `tools/` are blocked). Update it with `git -C ~/sandpainter pull`.
 
 | File | Job |
 |---|---|
-| `src/engine/world.js` | Grid storage only: `cells`, `shade`, `aux`, `stamp` Uint8Arrays; `set`/`move`/`swap`; xorshift RNG (`rand`, `chance(pct)`, `randInt`) |
+| `src/engine/world.js` | Grid storage only: `cells`, `shade`, `aux`, `stamp` Uint8Arrays, `born` Uint16Array; `set`/`move`/`swap`/`fresh`; xorshift RNG (`rand`, `chance(pct)`, `randInt`) |
 | `src/engine/ids.js` | Element id constants, flag bits, and the `FLAGS`/`DENSITY`/`IGNITE` tables (kept here to avoid an import cycle) |
 | `src/engine/behaviors.js` | Reusable rules: `fallPowder`, `flowLiquid`, `riseGas`, `explode`, `produce`, `tryIgnite`, neighbour queries |
 | `src/engine/elements.js` | The registry. Every element is one `def(id, {...})` with colour, flags, density, ignite chance and an `update` function. Also `TRAY`, `SPIGOT_OPTIONS`, RANDOM pool |
@@ -68,8 +68,31 @@ Engine conventions:
 
 - `update(x, y, i, world, params)`; `i = y * w + x`. Behaviour helpers return `true` when
   they changed the cell so they chain with `||`.
-- `stamp` parity makes each cell update at most once per step. `move`/`swap`/`produce`
-  stamp the destination.
+- `stamp` parity makes each cell update at most once per step. `set`/`move`/`swap`/`produce`
+  stamp the cell they write, so anything a reaction creates ahead of the sweep waits a step.
+- **One cell per step (v1.1.0).** `set()` also records `born` (low 16 bits of the frame), and
+  `nearHot`/`nearHot8` ignore a hot cell born this step (`world.fresh(j)`). Without this, a flame
+  lit mid-sweep lit the next cell in the same sweep, so a 200-px fuse burned in 2 steps and an
+  oil slick in 4 (the owner: "physics should be maintained, right now it will spiral out of
+  control"). Also in `flowLiquid`: sideways dispersion may only displace a gas cell that has
+  not moved this step; otherwise each liquid cell along a row swapped the same flame one cell
+  further and carried it across the row in one step.
+- Fire lingers only while fed, so with one-cell-per-step spread the old catch chances let
+  fires die out; all `ignite` values were roughly doubled (oil 60, bloom 45, seed 40, plant 35,
+  stem 30, molten wax 8), measured so an oil slick and a plant block burn out fully.
+- `FIRE` with `aux >= 128` is a pinned flame (sits still, counts down to 128, then becomes an
+  ordinary rising flame). A fuse lights into one, so the next fuse cell, corners included,
+  always sees it: fuses burn exactly one pixel per step.
+- Plants grow only into *pooled* water (`pooled()` in elements.js): supported below, and the
+  row runs into something solid within `POOL_REACH` (24) cells on both sides without meeting air;
+  upward growth also needs water or ground above the target. A plant under a falling stream
+  used to climb it to the spigot (owner: "plants should grow, but not up the water blocking it").
+- Lava spits an ember into the empty cell above it (1.5% per step), so methane drifting just
+  above lava goes up (owner: "lava and napalm should ignite methane"). Burning napalm already
+  set methane off; unlit napalm deliberately does not (it is fuel, not a flame).
+- A clone cell with nothing learned copies the element of a neighbouring clone cell, so the
+  whole block learns from one touch and pours from every open side (sand sitting on top used
+  to do nothing).
 - `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), paused }`.
 - Flags drive generic behaviour: `F_HOT` ignites and melts, `F_FUEL` keeps fire alive,
   `F_INDESTRUCTIBLE` survives acid and blasts.
@@ -109,7 +132,7 @@ grow into water, seeds bloom on wet soil, acid eats sand but not wall, clone cop
 gravity flip, wind drift, concrete sets, save/load round-trip, undo. About 1.4 ms per step
 with ~17k grains. No horizontal scroll at 375 px wide.
 
-## Bugs fixed 2026-09-29 (v1.0.1), and why they happened
+## Bugs fixed 2026-09-29 (v1.0.1 and v1.1.0), and why they happened
 
 - **Dark-mode dropdowns white on white (Windows).** The spigot `<select>` had a transparent
   background and cream text; Windows draws the open list on white. Options now carry
@@ -123,12 +146,12 @@ with ~17k grains. No horizontal scroll at 375 px wide.
   `max-width: 100%`; whenever the width cap won, the canvas was taller than 4:3 (1.15 at
   1400x900). `.plate-wrap` is now a size container and the plate's width is
   `min(100cqw, available height * 4/3)`. The narrow layout switches the container off.
+- **Paused was not obvious (v1.1.0).** Pausing now dims the canvas (`.plate.is-paused`), shows
+  a `#pausedBadge` button on it (click to resume; `pointerdown` ignores it like the toast) and
+  the header counter reads "paused".
 
 ## Known behaviour (not bugs)
 
-- Fire crosses an oil slick almost at once (half of a 480-px slick in about 12 ticks):
-  ignition propagates along a row within one sweep of `simulation.js`, like the liquid sweep
-  below. It reads well as a flash fire; leave it unless the owner asks.
 - Fire rises. Fire painted in the air above fuel floats away without igniting it; it has
   to touch the fuel.
 - Liquid sideways flow uses an in-place sweep, so a freshly poured, unsettled pool can
@@ -149,8 +172,9 @@ Change an element, change the guide, and rerun `node tools/engine_checks.mjs`.
 `READ ME FIRST.txt`). Attach the zip plus `Sandpainter.html` and `Element-Guide.html` to a
 GitHub release: `gh release create vX.Y.Z dist/Sandpainter-vX.Y.Z.zip Sandpainter.html
 Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29);
-v1.0.1 the same day fixed the four bugs above. Point the README download line at the new
-zip name when you cut one.
+v1.0.1 the same day fixed the four bugs above; v1.1.0 (same day) is the one-cell-per-step
+physics, plants, lava sparks, clone learning and the paused badge. Point the README download
+line at the new zip name when you cut one.
 
 ## Publishing
 

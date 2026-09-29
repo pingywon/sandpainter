@@ -11,7 +11,7 @@ A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#
 You don't need to install anything.
 
 1. Open the [**Releases** page](https://github.com/pingywon/sandpainter/releases/latest)
-   and download **`Sandpainter-v1.0.1.zip`** (under "Assets").
+   and download **`Sandpainter-v1.1.0.zip`** (under "Assets").
 2. Unzip it.
    - **Windows:** right-click the zip, choose **Extract All**, then **Extract**.
    - **Mac:** double-click the zip.
@@ -61,14 +61,14 @@ Every picture below is the real game, set up with the same elements you can pain
 
 **The whole game.** Elements on the left, the four spigots along the top, controls on the
 right. Here the spigots pour sand, water, salt and oil into two walled pools. On the left,
-plants on the pool floor drank the water and grew into it. On the right, oil floats on the
-water.
+plants filled the pool up to just under the surface, but they don't climb the falling water.
+On the right, oil floats on the water.
 
 ![A slick of oil on water, burning across its whole surface](docs/screenshots/02-oil-fire.png)
 
-**Oil spill.** Oil floats on water. One spark at the left edge and the fire races across the
-whole slick in a fraction of a second. The water underneath doesn't burn; where flame
-touches it, the flame dies in a puff of steam.
+**Oil spill.** Oil floats on water. One spark at the left edge and the fire creeps across the
+slick, one pixel at a time. Where flame reaches the water it dies in a puff of steam; the pale
+trail rising behind the flames is that steam.
 
 ![Two streams of lava falling into a lake, with rock mounds on the bottom and steam at the top](docs/screenshots/03-volcano.png)
 
@@ -85,13 +85,13 @@ five colours. Seeds on dry soil do nothing.
 ![A fireball where a block of C-4 was, at the end of a burning gunpowder trail on sand](docs/screenshots/05-chain-reaction.png)
 
 **Chain reaction.** One spark at the left end of a gunpowder trail. Each grain's pop sets off
-the next, and in about a third of a second the chain reaches the block of C-4 on the right:
-the biggest blast in the game.
+the next, and about a second and a half later the chain reaches the block of C-4. Here it is
+just going off: the biggest blast in the game.
 
 ![Four clone blocks pouring lava, water, sand and snow](docs/screenshots/06-clone-fountains.png)
 
-**Clone fountains.** A clone block copies the first thing that touches it and pours it out
-forever: lava, water, sand and snow here. The water spills off the grey shelf, and where it
+**Clone fountains.** Paint a clone block, then drop a little of something on top: the whole
+block learns it and pours it out forever. Lava, water, sand and snow here. The water spills off the grey shelf, and where it
 meets the lava on the floor, the two turn into rock.
 
 ![A lake with ice forming where cryo lands, snow melting into it, and ice blobs on the bottom](docs/screenshots/07-deep-freeze.png)
@@ -116,6 +116,11 @@ hang.
 
 **Help.** Click **?** in the top-right corner for every key, how the spigots work, and a link
 to the element guide.
+
+![The game paused: the picture dimmed, with a PAUSED badge at the top of the canvas](docs/screenshots/13-paused.png)
+
+**Paused.** Press `Space` (or the Pause button) and the picture dims, with a **PAUSED** badge on
+top. Press `Space` again, or click the badge, to carry on.
 
 <img src="docs/screenshots/11-element-guide.png" alt="The element guide, showing cards for sand, salt, gunpowder and more" width="640">
 

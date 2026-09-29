@@ -50,25 +50,35 @@ export function near4Flag(x, y, i, w, flag) {
   return -1;
 }
 
+/** Hot, and not lit during this step: heat spreads one cell per step, never a whole row at once. */
+function hotAt(w, j) {
+  return (FLAGS[w.cells[j]] & F_HOT) !== 0 && !w.fresh(j);
+}
+
 export function nearHot(x, y, i, w) {
-  return near4Flag(x, y, i, w, F_HOT) !== -1;
+  const W = w.w;
+  if (x > 0 && hotAt(w, i - 1)) return true;
+  if (x < W - 1 && hotAt(w, i + 1)) return true;
+  if (y > 0 && hotAt(w, i - W)) return true;
+  if (y < w.h - 1 && hotAt(w, i + W)) return true;
+  return false;
 }
 
 /** True if any of the 8 neighbours is hot (used by fuses so a rising flame still counts). */
 export function nearHot8(x, y, i, w) {
-  const c = w.cells, W = w.w;
+  const W = w.w;
   const x0 = x > 0, x1 = x < W - 1, y0 = y > 0, y1 = y < w.h - 1;
-  if (x0 && (FLAGS[c[i - 1]] & F_HOT)) return true;
-  if (x1 && (FLAGS[c[i + 1]] & F_HOT)) return true;
+  if (x0 && hotAt(w, i - 1)) return true;
+  if (x1 && hotAt(w, i + 1)) return true;
   if (y0) {
-    if (FLAGS[c[i - W]] & F_HOT) return true;
-    if (x0 && (FLAGS[c[i - W - 1]] & F_HOT)) return true;
-    if (x1 && (FLAGS[c[i - W + 1]] & F_HOT)) return true;
+    if (hotAt(w, i - W)) return true;
+    if (x0 && hotAt(w, i - W - 1)) return true;
+    if (x1 && hotAt(w, i - W + 1)) return true;
   }
   if (y1) {
-    if (FLAGS[c[i + W]] & F_HOT) return true;
-    if (x0 && (FLAGS[c[i + W - 1]] & F_HOT)) return true;
-    if (x1 && (FLAGS[c[i + W + 1]] & F_HOT)) return true;
+    if (hotAt(w, i + W)) return true;
+    if (x0 && hotAt(w, i + W - 1)) return true;
+    if (x1 && hotAt(w, i + W + 1)) return true;
   }
   return false;
 }
@@ -188,7 +198,8 @@ export function flowLiquid(x, y, i, w, p, spread = 4, mobility = 100) {
       const j = i + dx * s;
       const t = w.cells[j];
       if (t === EMPTY) { last = j; continue; }
-      if (FLAGS[t] & F_GAS) { last = j; continue; }
+      // A gas that already moved this step stays put, or one sweep could carry a flame along a whole row.
+      if ((FLAGS[t] & F_GAS) && w.stamp[j] !== w.parity) { last = j; continue; }
       break;
     }
     if (last !== -1) { shove(w, i, last); return true; }

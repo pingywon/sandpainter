@@ -298,6 +298,20 @@ body {
   cursor: default;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* paused: the picture dims and a badge says how to resume */
+.plate.is-paused #world { filter: saturate(.45) brightness(.7); }
+#world { transition: filter .2s; }
+.paused-badge {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--ink-2) 90%, transparent);
+  border: 1px solid var(--amber); color: var(--amber-2);
+  font: 600 12px var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: 0 6px 24px -8px rgba(0, 0, 0, .8);
+}
+.paused-badge:hover { background: var(--amber); color: var(--ink); }
+.paused-badge[hidden] { display: none; }
 .toast button {
   border: 1px solid var(--line-2); background: transparent; color: var(--amber-2);
   font: 500 11px var(--font-mono); padding: 4px 10px; border-radius: 999px; cursor: pointer;

@@ -319,6 +319,20 @@ body {
   cursor: default;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* paused: the picture dims and a badge says how to resume */
+.plate.is-paused #world { filter: saturate(.45) brightness(.7); }
+#world { transition: filter .2s; }
+.paused-badge {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--ink-2) 90%, transparent);
+  border: 1px solid var(--amber); color: var(--amber-2);
+  font: 600 12px var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: 0 6px 24px -8px rgba(0, 0, 0, .8);
+}
+.paused-badge:hover { background: var(--amber); color: var(--ink); }
+.paused-badge[hidden] { display: none; }
 .toast button {
   border: 1px solid var(--line-2); background: transparent; color: var(--amber-2);
   font: 500 11px var(--font-mono); padding: 4px 10px; border-radius: 999px; cursor: pointer;
@@ -480,6 +494,7 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
         <canvas id="world" role="img" aria-label="Sand painting canvas. Click and drag to paint with the selected element."></canvas>
         <canvas id="cursor" aria-hidden="true"></canvas>
         <div class="toast" id="toast" hidden></div>
+        <button class="paused-badge" id="pausedBadge" type="button" hidden>❚❚ Paused · Space to play</button>
       </div>
       <p class="status" id="status"></p>
     </section>
@@ -536,6 +551,8 @@ __mods['engine/world.js'] = (() => {
  *   shade  – 0..7 colour jitter, re-rolled when a particle moves
  *   aux    – per-cell scratch byte (fire life, concrete rest timer, stem growth, clone target…)
  *   stamp  – frame parity; a cell whose stamp equals the current parity was already updated
+ *   born   – low 16 bits of the frame a cell was last created by set(); lets heat checks
+ *            ignore a flame lit this same step, so reactions spread one cell per step
  */
 const W = 640;
 const H = 480;
@@ -565,6 +582,7 @@ class World {
     this.shade = new Uint8Array(this.n);
     this.aux = new Uint8Array(this.n);
     this.stamp = new Uint8Array(this.n);
+    this.born = new Uint16Array(this.n);
     this.parity = 0;
     this.frame = 0;
     this.randomizeShade();
@@ -589,17 +607,28 @@ class World {
     return x >= 0 && y >= 0 && x < this.w && y < this.h;
   }
 
-  /** Place element `id` at index i with a fresh shade and aux value. */
+  /**
+   * Place element `id` at index i with a fresh shade and aux value. The cell counts as
+   * updated this step, so something a reaction creates ahead of the sweep does not act again.
+   */
   set(i, id, aux = 0) {
     this.cells[i] = id;
     this.aux[i] = aux;
     this.shade[i] = randInt(8);
+    this.stamp[i] = this.parity;
+    this.born[i] = this.frame & 0xffff;
+  }
+
+  /** True if the cell at i was created during the current step. */
+  fresh(i) {
+    return this.born[i] === (this.frame & 0xffff);
   }
 
   /** Move the particle at i to j (j must be EMPTY). Marks j as updated this frame. */
   move(i, j) {
     this.cells[j] = this.cells[i];
     this.aux[j] = this.aux[i];
+    this.born[j] = this.born[i];
     this.shade[j] = randInt(8);
     this.cells[i] = 0;
     this.aux[i] = 0;
@@ -608,10 +637,10 @@ class World {
 
   /** Swap two cells (used for density sinking / floating). Marks j as updated. */
   swap(i, j) {
-    const c = this.cells, a = this.aux, s = this.shade;
-    const tc = c[i], ta = a[i];
-    c[i] = c[j]; a[i] = a[j]; s[i] = randInt(8);
-    c[j] = tc; a[j] = ta; s[j] = randInt(8);
+    const c = this.cells, a = this.aux, s = this.shade, b = this.born;
+    const tc = c[i], ta = a[i], tb = b[i];
+    c[i] = c[j]; a[i] = a[j]; b[i] = b[j]; s[i] = randInt(8);
+    c[j] = tc; a[j] = ta; b[j] = tb; s[j] = randInt(8);
     this.stamp[j] = this.parity;
   }
 
@@ -759,25 +788,35 @@ function near4Flag(x, y, i, w, flag) {
   return -1;
 }
 
+/** Hot, and not lit during this step: heat spreads one cell per step, never a whole row at once. */
+function hotAt(w, j) {
+  return (FLAGS[w.cells[j]] & F_HOT) !== 0 && !w.fresh(j);
+}
+
 function nearHot(x, y, i, w) {
-  return near4Flag(x, y, i, w, F_HOT) !== -1;
+  const W = w.w;
+  if (x > 0 && hotAt(w, i - 1)) return true;
+  if (x < W - 1 && hotAt(w, i + 1)) return true;
+  if (y > 0 && hotAt(w, i - W)) return true;
+  if (y < w.h - 1 && hotAt(w, i + W)) return true;
+  return false;
 }
 
 /** True if any of the 8 neighbours is hot (used by fuses so a rising flame still counts). */
 function nearHot8(x, y, i, w) {
-  const c = w.cells, W = w.w;
+  const W = w.w;
   const x0 = x > 0, x1 = x < W - 1, y0 = y > 0, y1 = y < w.h - 1;
-  if (x0 && (FLAGS[c[i - 1]] & F_HOT)) return true;
-  if (x1 && (FLAGS[c[i + 1]] & F_HOT)) return true;
+  if (x0 && hotAt(w, i - 1)) return true;
+  if (x1 && hotAt(w, i + 1)) return true;
   if (y0) {
-    if (FLAGS[c[i - W]] & F_HOT) return true;
-    if (x0 && (FLAGS[c[i - W - 1]] & F_HOT)) return true;
-    if (x1 && (FLAGS[c[i - W + 1]] & F_HOT)) return true;
+    if (hotAt(w, i - W)) return true;
+    if (x0 && hotAt(w, i - W - 1)) return true;
+    if (x1 && hotAt(w, i - W + 1)) return true;
   }
   if (y1) {
-    if (FLAGS[c[i + W]] & F_HOT) return true;
-    if (x0 && (FLAGS[c[i + W - 1]] & F_HOT)) return true;
-    if (x1 && (FLAGS[c[i + W + 1]] & F_HOT)) return true;
+    if (hotAt(w, i + W)) return true;
+    if (x0 && hotAt(w, i + W - 1)) return true;
+    if (x1 && hotAt(w, i + W + 1)) return true;
   }
   return false;
 }
@@ -897,7 +936,8 @@ function flowLiquid(x, y, i, w, p, spread = 4, mobility = 100) {
       const j = i + dx * s;
       const t = w.cells[j];
       if (t === EMPTY) { last = j; continue; }
-      if (FLAGS[t] & F_GAS) { last = j; continue; }
+      // A gas that already moved this step stays put, or one sweep could carry a flame along a whole row.
+      if ((FLAGS[t] & F_GAS) && w.stamp[j] !== w.parity) { last = j; continue; }
       break;
     }
     if (last !== -1) { shove(w, i, last); return true; }
@@ -1109,20 +1149,69 @@ def(SALT_WATER, {
 
 def(OIL, {
   name: 'Oil', group: 'Liquids', rgb: [128, 62, 18], rgb2: [86, 40, 12], flags: F_LIQUID | F_FUEL, density: 0.8,
-  ignite: 30, hint: 'Floats on water, burns hot and long',
+  ignite: 60, hint: 'Floats on water, burns hot and long',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     flowLiquid(x, y, i, w, p, 3);
   },
 });
 
+const POOL_REACH = 24;
+
+/**
+ * True if the water at j is part of a pool: supported below, and its row runs into something solid
+ * (or on for POOL_REACH cells) on both sides. A falling drop, or a puddle a stream keeps topping up on
+ * a plant, reaches open air at an edge and does not count, so plants cannot climb a stream.
+ */
+function pooled(w, j, p) {
+  const W = w.w, x = j % W, y = (j / W) | 0;
+  const by = y + p.gravity;
+  if (by >= 0 && by < w.h) {
+    const b = w.cells[j + p.gravity * W];
+    if (b === EMPTY || (FLAGS[b] & F_GAS)) return false;
+  }
+  for (const dx of [-1, 1]) {
+    for (let s = 1; s <= POOL_REACH; s++) {
+      const nx = x + dx * s;
+      if (nx < 0 || nx >= W) break;
+      const c = w.cells[j + dx * s];
+      if (c === EMPTY || (FLAGS[c] & F_GAS)) return false;
+      if (!(FLAGS[c] & F_LIQUID)) break;
+    }
+  }
+  return true;
+}
+
+/** A random 4-neighbour holding pooled water, or -1. */
+function stillWater(x, y, i, w, p) {
+  const W = w.w, start = randInt(4);
+  for (let k = 0; k < 4; k++) {
+    let j = -1;
+    switch ((start + k) & 3) {
+      case 0: if (x > 0) j = i - 1; break;
+      case 1: if (x < W - 1) j = i + 1; break;
+      case 2: if (y > 0) j = i - W; break;
+      case 3: if (y < w.h - 1) j = i + W; break;
+    }
+    if (j === -1 || w.cells[j] !== WATER || !pooled(w, j, p)) continue;
+    // Upward growth also needs water or ground above that water, so a plant stays under the surface.
+    if (j === i - p.gravity * W) {
+      const a = j - p.gravity * W, ay = ((j / W) | 0) - p.gravity;
+      if (ay >= 0 && ay < w.h && (w.cells[a] === EMPTY || (FLAGS[w.cells[a]] & F_GAS))) continue;
+    }
+    return j;
+  }
+  return -1;
+}
+
 def(PLANT, {
-  name: 'Plant', group: 'Solids', rgb: [44, 190, 74], variance: 22, flags: F_STATIC | F_FUEL, ignite: 18,
-  hint: 'Grows into water, burns, hates salt',
-  update: (x, y, i, w) => {
+  name: 'Plant', group: 'Solids', rgb: [44, 190, 74], variance: 22, flags: F_STATIC | F_FUEL, ignite: 35,
+  hint: 'Grows into still water, burns, hates salt',
+  update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
+    // Only pooled water: a plant under a falling stream would otherwise climb it to the spigot.
     if (chance(45)) {
-      const j = near4(x, y, i, w, WATER);
+      const j = stillWater(x, y, i, w, p);
       if (j !== -1) { w.set(j, PLANT); return; }
     }
     if (chance(5) && near4(x, y, i, w, SALT) !== -1) w.set(i, EMPTY);
@@ -1140,6 +1229,12 @@ def(FIRE, {
       if (j !== -1) { w.set(j, STEAM); w.set(i, EMPTY); return; }
     }
     w.shade[i] = randInt(8);
+    // aux >= 128: a pinned flame (a burning fuse) that holds still for a few steps, then rises.
+    if (w.aux[i] >= 128) {
+      if (w.aux[i] === 128) w.set(i, FIRE, 4 + randInt(6));
+      else w.aux[i]--;
+      return;
+    }
     const fuel = near4Flag(x, y, i, w, F_FUEL);
     const fed = fuel !== -1;
     if (fed) {
@@ -1217,7 +1312,7 @@ def(WAX, {
 });
 
 def(MOLTEN_WAX, {
-  name: 'Molten wax', rgb: [246, 234, 200], variance: 6, flags: F_LIQUID | F_FUEL, density: 0.9, ignite: 4,
+  name: 'Molten wax', rgb: [246, 234, 200], variance: 6, flags: F_LIQUID | F_FUEL, density: 0.9, ignite: 8,
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     if (!nearHot(x, y, i, w) && chance(1.5)) {
@@ -1270,7 +1365,7 @@ def(SET_CONCRETE, { name: 'Set concrete', rgb: [128, 128, 126], variance: 8, fla
 def(FUSE, {
   name: 'Fuse', group: 'Solids', rgb: [222, 176, 202], variance: 8, flags: F_STATIC | F_FUEL,
   hint: 'Carries a flame along its length',
-  update: (x, y, i, w) => { if (nearHot8(x, y, i, w)) spawnFire(w, i); },
+  update: (x, y, i, w) => { if (nearHot8(x, y, i, w)) w.set(i, FIRE, 128 + 3 + randInt(3)); },
 });
 
 def(ICE, {
@@ -1291,6 +1386,11 @@ def(LAVA, {
       let j = near4(x, y, i, w, WATER);
       if (j === -1) j = near4(x, y, i, w, SALT_WATER);
       if (j !== -1) { w.set(j, STEAM); w.set(i, ROCK); return; }
+    }
+    // Sparks off the surface: methane or fuel drifting just above lava catches, not only what touches it.
+    if (chance(1.5)) {
+      const ay = y - p.gravity, a = i - p.gravity * w.w;
+      if (ay >= 0 && ay < w.h && w.cells[a] === EMPTY) w.set(a, EMBER, 3 + randInt(5));
     }
     flowLiquid(x, y, i, w, p, 2, 35);
   },
@@ -1363,7 +1463,7 @@ def(SNOW, {
 });
 
 def(SEED, {
-  name: 'Seed', group: 'Powders', rgb: [184, 142, 62], variance: 16, flags: F_POWDER | F_FUEL, density: 1.5, ignite: 20,
+  name: 'Seed', group: 'Powders', rgb: [184, 142, 62], variance: 16, flags: F_POWDER | F_FUEL, density: 1.5, ignite: 40,
   hint: 'Sprouts a flower when it lands on wet soil',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
@@ -1387,7 +1487,7 @@ function bloom(w, j, x, y, p) {
 }
 
 def(STEM, {
-  name: 'Stem', rgb: [62, 142, 52], variance: 12, flags: F_STATIC | F_FUEL, ignite: 15,
+  name: 'Stem', rgb: [62, 142, 52], variance: 12, flags: F_STATIC | F_FUEL, ignite: 30,
   initAux: () => 5 + randInt(8),
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
@@ -1407,7 +1507,7 @@ def(STEM, {
 });
 
 const bloomSpec = (name, rgb) => ({
-  name, rgb, variance: 22, flags: F_STATIC | F_FUEL, ignite: 25,
+  name, rgb, variance: 22, flags: F_STATIC | F_FUEL, ignite: 45,
   update: (x, y, i, w) => { tryIgnite(x, y, i, w); },
 });
 def(BLOOMS[0], bloomSpec('Bloom', [255, 108, 172]));
@@ -1446,12 +1546,16 @@ def(ACID, {
 
 def(CLONE, {
   name: 'Clone', group: 'Producers', rgb: [226, 190, 255], variance: 6, flags: F_STATIC | F_INDESTRUCTIBLE,
-  hint: 'Copies the first thing that touches it, forever',
+  hint: 'Drop something on it: it pours that out forever',
   update: (x, y, i, w) => {
     const a = w.aux[i];
     if (a === 0) {
       const j = near4Flag(x, y, i, w, F_POWDER | F_LIQUID | F_GAS);
-      if (j !== -1 && w.cells[j] !== CLONE) w.aux[i] = w.cells[j];
+      if (j !== -1 && w.cells[j] !== CLONE) { w.aux[i] = w.cells[j]; return; }
+      // Learn from a neighbouring clone cell, so the whole block pours, not just the cells that were touched.
+      const W = w.w;
+      const n = [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < w.h - 1 ? i + W : -1];
+      for (const k of n) if (k !== -1 && w.cells[k] === CLONE && w.aux[k] !== 0) { w.aux[i] = w.aux[k]; return; }
       return;
     }
     const e = ELEMENTS[a];
@@ -2426,8 +2530,8 @@ function toWorld(ev) {
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
 plate.addEventListener('pointerdown', (ev) => {
-  // The toast sits inside the plate; capturing its presses would paint under it and swallow its button clicks.
-  if (ev.target.closest('#toast')) return;
+  // The toast and paused badge sit inside the plate; capturing their presses would paint under them and swallow the clicks.
+  if (ev.target.closest('#toast, #pausedBadge')) return;
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
   if (!toastEl.hidden) hideToast();
@@ -2503,6 +2607,14 @@ function run() {
   schedule();
 }
 
+const pausedBadge = document.getElementById('pausedBadge');
+pausedBadge.addEventListener('click', () => app.togglePause());
+on('paused', (v) => {
+  plate.classList.toggle('is-paused', v);
+  pausedBadge.hidden = !v;
+  fpsEl.textContent = v ? 'paused' : '— fps';
+});
+
 function frame(now) {
   if (!params.paused) {
     acc += params.speed;
@@ -2517,7 +2629,7 @@ function frame(now) {
   frames++;
   if (now - lastFps >= 500) {
     const fps = Math.round((frames * 1000) / (now - lastFps));
-    fpsEl.textContent = `${fps} fps`;
+    fpsEl.textContent = params.paused ? 'paused' : `${fps} fps`;
     cellsEl.textContent = `${countCells().toLocaleString()} grains`;
     frames = 0;
     lastFps = now;

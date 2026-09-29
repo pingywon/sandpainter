@@ -97,20 +97,69 @@ def(SALT_WATER, {
 
 def(OIL, {
   name: 'Oil', group: 'Liquids', rgb: [128, 62, 18], rgb2: [86, 40, 12], flags: F_LIQUID | F_FUEL, density: 0.8,
-  ignite: 30, hint: 'Floats on water, burns hot and long',
+  ignite: 60, hint: 'Floats on water, burns hot and long',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     flowLiquid(x, y, i, w, p, 3);
   },
 });
 
+const POOL_REACH = 24;
+
+/**
+ * True if the water at j is part of a pool: supported below, and its row runs into something solid
+ * (or on for POOL_REACH cells) on both sides. A falling drop, or a puddle a stream keeps topping up on
+ * a plant, reaches open air at an edge and does not count, so plants cannot climb a stream.
+ */
+function pooled(w, j, p) {
+  const W = w.w, x = j % W, y = (j / W) | 0;
+  const by = y + p.gravity;
+  if (by >= 0 && by < w.h) {
+    const b = w.cells[j + p.gravity * W];
+    if (b === EMPTY || (FLAGS[b] & F_GAS)) return false;
+  }
+  for (const dx of [-1, 1]) {
+    for (let s = 1; s <= POOL_REACH; s++) {
+      const nx = x + dx * s;
+      if (nx < 0 || nx >= W) break;
+      const c = w.cells[j + dx * s];
+      if (c === EMPTY || (FLAGS[c] & F_GAS)) return false;
+      if (!(FLAGS[c] & F_LIQUID)) break;
+    }
+  }
+  return true;
+}
+
+/** A random 4-neighbour holding pooled water, or -1. */
+function stillWater(x, y, i, w, p) {
+  const W = w.w, start = randInt(4);
+  for (let k = 0; k < 4; k++) {
+    let j = -1;
+    switch ((start + k) & 3) {
+      case 0: if (x > 0) j = i - 1; break;
+      case 1: if (x < W - 1) j = i + 1; break;
+      case 2: if (y > 0) j = i - W; break;
+      case 3: if (y < w.h - 1) j = i + W; break;
+    }
+    if (j === -1 || w.cells[j] !== WATER || !pooled(w, j, p)) continue;
+    // Upward growth also needs water or ground above that water, so a plant stays under the surface.
+    if (j === i - p.gravity * W) {
+      const a = j - p.gravity * W, ay = ((j / W) | 0) - p.gravity;
+      if (ay >= 0 && ay < w.h && (w.cells[a] === EMPTY || (FLAGS[w.cells[a]] & F_GAS))) continue;
+    }
+    return j;
+  }
+  return -1;
+}
+
 def(PLANT, {
-  name: 'Plant', group: 'Solids', rgb: [44, 190, 74], variance: 22, flags: F_STATIC | F_FUEL, ignite: 18,
-  hint: 'Grows into water, burns, hates salt',
-  update: (x, y, i, w) => {
+  name: 'Plant', group: 'Solids', rgb: [44, 190, 74], variance: 22, flags: F_STATIC | F_FUEL, ignite: 35,
+  hint: 'Grows into still water, burns, hates salt',
+  update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
+    // Only pooled water: a plant under a falling stream would otherwise climb it to the spigot.
     if (chance(45)) {
-      const j = near4(x, y, i, w, WATER);
+      const j = stillWater(x, y, i, w, p);
       if (j !== -1) { w.set(j, PLANT); return; }
     }
     if (chance(5) && near4(x, y, i, w, SALT) !== -1) w.set(i, EMPTY);
@@ -128,6 +177,12 @@ def(FIRE, {
       if (j !== -1) { w.set(j, STEAM); w.set(i, EMPTY); return; }
     }
     w.shade[i] = randInt(8);
+    // aux >= 128: a pinned flame (a burning fuse) that holds still for a few steps, then rises.
+    if (w.aux[i] >= 128) {
+      if (w.aux[i] === 128) w.set(i, FIRE, 4 + randInt(6));
+      else w.aux[i]--;
+      return;
+    }
     const fuel = near4Flag(x, y, i, w, F_FUEL);
     const fed = fuel !== -1;
     if (fed) {
@@ -205,7 +260,7 @@ def(WAX, {
 });
 
 def(MOLTEN_WAX, {
-  name: 'Molten wax', rgb: [246, 234, 200], variance: 6, flags: F_LIQUID | F_FUEL, density: 0.9, ignite: 4,
+  name: 'Molten wax', rgb: [246, 234, 200], variance: 6, flags: F_LIQUID | F_FUEL, density: 0.9, ignite: 8,
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     if (!nearHot(x, y, i, w) && chance(1.5)) {
@@ -258,7 +313,7 @@ def(SET_CONCRETE, { name: 'Set concrete', rgb: [128, 128, 126], variance: 8, fla
 def(FUSE, {
   name: 'Fuse', group: 'Solids', rgb: [222, 176, 202], variance: 8, flags: F_STATIC | F_FUEL,
   hint: 'Carries a flame along its length',
-  update: (x, y, i, w) => { if (nearHot8(x, y, i, w)) spawnFire(w, i); },
+  update: (x, y, i, w) => { if (nearHot8(x, y, i, w)) w.set(i, FIRE, 128 + 3 + randInt(3)); },
 });
 
 def(ICE, {
@@ -279,6 +334,11 @@ def(LAVA, {
       let j = near4(x, y, i, w, WATER);
       if (j === -1) j = near4(x, y, i, w, SALT_WATER);
       if (j !== -1) { w.set(j, STEAM); w.set(i, ROCK); return; }
+    }
+    // Sparks off the surface: methane or fuel drifting just above lava catches, not only what touches it.
+    if (chance(1.5)) {
+      const ay = y - p.gravity, a = i - p.gravity * w.w;
+      if (ay >= 0 && ay < w.h && w.cells[a] === EMPTY) w.set(a, EMBER, 3 + randInt(5));
     }
     flowLiquid(x, y, i, w, p, 2, 35);
   },
@@ -351,7 +411,7 @@ def(SNOW, {
 });
 
 def(SEED, {
-  name: 'Seed', group: 'Powders', rgb: [184, 142, 62], variance: 16, flags: F_POWDER | F_FUEL, density: 1.5, ignite: 20,
+  name: 'Seed', group: 'Powders', rgb: [184, 142, 62], variance: 16, flags: F_POWDER | F_FUEL, density: 1.5, ignite: 40,
   hint: 'Sprouts a flower when it lands on wet soil',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
@@ -375,7 +435,7 @@ function bloom(w, j, x, y, p) {
 }
 
 def(STEM, {
-  name: 'Stem', rgb: [62, 142, 52], variance: 12, flags: F_STATIC | F_FUEL, ignite: 15,
+  name: 'Stem', rgb: [62, 142, 52], variance: 12, flags: F_STATIC | F_FUEL, ignite: 30,
   initAux: () => 5 + randInt(8),
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
@@ -395,7 +455,7 @@ def(STEM, {
 });
 
 const bloomSpec = (name, rgb) => ({
-  name, rgb, variance: 22, flags: F_STATIC | F_FUEL, ignite: 25,
+  name, rgb, variance: 22, flags: F_STATIC | F_FUEL, ignite: 45,
   update: (x, y, i, w) => { tryIgnite(x, y, i, w); },
 });
 def(BLOOMS[0], bloomSpec('Bloom', [255, 108, 172]));
@@ -434,12 +494,16 @@ def(ACID, {
 
 def(CLONE, {
   name: 'Clone', group: 'Producers', rgb: [226, 190, 255], variance: 6, flags: F_STATIC | F_INDESTRUCTIBLE,
-  hint: 'Copies the first thing that touches it, forever',
+  hint: 'Drop something on it: it pours that out forever',
   update: (x, y, i, w) => {
     const a = w.aux[i];
     if (a === 0) {
       const j = near4Flag(x, y, i, w, F_POWDER | F_LIQUID | F_GAS);
-      if (j !== -1 && w.cells[j] !== CLONE) w.aux[i] = w.cells[j];
+      if (j !== -1 && w.cells[j] !== CLONE) { w.aux[i] = w.cells[j]; return; }
+      // Learn from a neighbouring clone cell, so the whole block pours, not just the cells that were touched.
+      const W = w.w;
+      const n = [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < w.h - 1 ? i + W : -1];
+      for (const k of n) if (k !== -1 && w.cells[k] === CLONE && w.aux[k] !== 0) { w.aux[i] = w.aux[k]; return; }
       return;
     }
     const e = ELEMENTS[a];

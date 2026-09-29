@@ -161,6 +161,10 @@
       <p>Acid and explosions can't touch Wall or Clone. The Eraser still removes anything.</p>
       <div class="chips"><span class="chip" data-el="wall">Wall</span><span class="chip" data-el="clone">Clone</span></div>
     </div>
+    <div class="rule">
+      <b>6 · One step at a time</b>
+      <p>Fire, frost, plants and chain reactions spread at most one pixel per tick. You can watch a fuse burn or a fire creep across oil instead of it all happening at once.</p>
+    </div>
   </div>
 
   <!-- ============================== LADDER -->
@@ -289,6 +293,7 @@
       <ul>
         <li>Floats on water, and <b>water can't put it out</b>. It only kills the flames it touches.</li>
         <li><b>Cryo</b> can put it out.</li>
+        <li><b>Methane:</b> burning napalm sets off methane above it. Unlit napalm needs a flame first.</li>
       </ul>
     </article>
     <article class="card">
@@ -299,6 +304,7 @@
         <li><b>Cryo:</b> instantly turns it to rock.</li>
         <li><b>Sand, salt, rock:</b> float on it.</li>
         <li><b>Acid:</b> yes, acid can eat lava.</li>
+        <li><b>Sparks:</b> lava spits the odd spark off its surface, so methane or oil drifting just above it catches too.</li>
       </ul>
     </article>
     <article class="card">
@@ -337,7 +343,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="plant"></canvas><div><h4>Plant</h4><span class="tag">thirsty</span></div></div>
-      <p>Every drop of water it touches becomes more plant. Drop a little plant in a puddle and it drinks the whole puddle.</p>
+      <p>Grows into still water. Drop a little plant in a pond and it fills the pond, stopping just under the surface. A falling stream, or a puddle a stream keeps topping up on it, won't make it grow, so it can't climb up to a spigot.</p>
       <ul>
         <li><b>Salt water:</b> won't drink it.</li>
         <li><b>Salt:</b> next to it, slowly kills it.</li>
@@ -362,7 +368,10 @@
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="fuse"></canvas><div><h4>Fuse</h4><span class="tag">a wick</span></div></div>
       <p>Heat on any of its eight neighbours, corners included, turns a piece of fuse into flame, which lights the next piece. Draw a line, light one end, watch it run.</p>
-      <ul><li>Diagonal lines work because corners count for fuse.</li></ul>
+      <ul>
+        <li>It burns one pixel per tick, so you can watch the flame run.</li>
+        <li>Diagonal lines work because corners count for fuse.</li>
+      </ul>
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="ice"></canvas><div><h4>Ice</h4><span class="tag">a slow frost</span></div></div>
@@ -378,7 +387,7 @@
   <div class="cards">
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="fire"></canvas><div><h4>Fire</h4><span class="tag">rises and dies, unless fed</span></div></div>
-      <p>A lone flame floats up and fizzles out in a blink. Touching fuel it stays, keeps burning and spreads into the fuel.</p>
+      <p>A lone flame floats up and fizzles out in a blink. Touching fuel it stays, keeps burning and spreads into the fuel, one pixel at a time.</p>
       <ul>
         <li><b>Lights:</b> oil, plants, seeds, stems, flowers, fuse, napalm.</li>
         <li><b>Melts:</b> wax, ice, snow. <b>Boils:</b> water. <b>Dries:</b> wet soil.</li>
@@ -389,7 +398,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="methane"></canvas><div><h4>Methane</h4><span class="tag">a cloud of trouble</span></div></div>
-      <p>A drifting gas that rises and bubbles up through water and sand. Any heat makes it pop. A room full of it goes off in a rolling chain, each pop lighting the next.</p>
+      <p>A drifting gas that rises and bubbles up through water and sand. Any heat makes it pop, including lava's sparks and burning napalm. A room full of it goes off in a rolling chain, each pop lighting the next.</p>
       <ul><li>Wind pushes gases hardest, so you can steer a methane cloud.</li></ul>
     </article>
   </div>
@@ -412,12 +421,13 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="clone"></canvas><div><h4>Clone</h4><span class="tag">a copy machine</span></div></div>
-      <p>Copies the first powder, liquid or gas that touches it, then makes more of it forever. Indestructible.</p>
+      <p>Paint a block of clone, then drop something on it. The first powder, liquid or gas to touch it is what the whole block learns, and it pours that out of every open side forever. Indestructible.</p>
       <ul>
         <li><b>Can't copy solids:</b> wall, plant, ice, wax, C-4, fuse.</li>
         <li><b>Lava</b> → lava fountain. <b>Steam</b> → cloud machine. <b>Fire</b> → eternal flame. <b>Seed</b> → seed rain.</li>
         <li>It also copies secret elements: <b>rock</b>, <b>salt water</b>, <b>embers</b>…</li>
         <li>To reset one, erase it and paint a fresh clone.</li>
+        <li>Tip: paint the element <i>above</i> the clone with a small brush. A big brush painted over the clone replaces it.</li>
       </ul>
     </article>
   </div>
@@ -455,7 +465,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="ember"></canvas><div><h4>Ember</h4><span class="tag">blast leftovers</span></div></div>
-      <p>Glowing bits thrown out by every explosion. They live only a moment and float up, but they're hot, so they can set off whatever they land next to.</p>
+      <p>Glowing bits thrown out by every explosion and spat off the top of lava. They live only a moment and float up, but they're hot, so they can set off whatever they land next to.</p>
       <ul><li><b>Water:</b> snuffs them out instantly.</li></ul>
     </article>
     <article class="card">
@@ -492,12 +502,12 @@
     <thead><tr><th>Fuel</th><th>Catch chance</th><th style="width:45%"></th></tr></thead>
     <tbody>
       <tr><td><span class="chip" data-el="fuse">Fuse</span></td><td>every time</td><td><div class="bar" style="width:100%"></div></td></tr>
-      <tr><td><span class="chip" data-el="oil">Oil</span></td><td>30%</td><td><div class="bar" style="width:30%"></div></td></tr>
-      <tr><td><span class="chip" data-el="bloom">Bloom</span></td><td>25%</td><td><div class="bar" style="width:25%"></div></td></tr>
-      <tr><td><span class="chip" data-el="seed">Seed</span></td><td>20%</td><td><div class="bar" style="width:20%"></div></td></tr>
-      <tr><td><span class="chip" data-el="plant">Plant</span></td><td>18%</td><td><div class="bar" style="width:18%"></div></td></tr>
-      <tr><td><span class="chip" data-el="stem">Stem</span></td><td>15%</td><td><div class="bar" style="width:15%"></div></td></tr>
-      <tr><td><span class="chip" data-el="moltenwax">Molten wax</span></td><td>4%</td><td><div class="bar" style="width:4%"></div></td></tr>
+      <tr><td><span class="chip" data-el="oil">Oil</span></td><td>60%</td><td><div class="bar" style="width:60%"></div></td></tr>
+      <tr><td><span class="chip" data-el="bloom">Bloom</span></td><td>45%</td><td><div class="bar" style="width:45%"></div></td></tr>
+      <tr><td><span class="chip" data-el="seed">Seed</span></td><td>40%</td><td><div class="bar" style="width:40%"></div></td></tr>
+      <tr><td><span class="chip" data-el="plant">Plant</span></td><td>35%</td><td><div class="bar" style="width:35%"></div></td></tr>
+      <tr><td><span class="chip" data-el="stem">Stem</span></td><td>30%</td><td><div class="bar" style="width:30%"></div></td></tr>
+      <tr><td><span class="chip" data-el="moltenwax">Molten wax</span></td><td>8%</td><td><div class="bar" style="width:8%"></div></td></tr>
       <tr><td><span class="chip" data-el="napalm">Napalm</span></td><td colspan="2">doesn't catch; it throws flames around itself instead</td></tr>
       <tr><td><span class="chip" data-el="wax">Wax</span></td><td colspan="2">never catches; it melts first</td></tr>
     </tbody>
@@ -550,7 +560,7 @@
   </div>
 
   <footer>
-    Sandpainter is a from-scratch remake of Artsology's Sandpainting Game v2. This guide describes the game as of v1.0.
+    Sandpainter is a from-scratch remake of Artsology's Sandpainting Game v2. This guide describes the game as of v1.1.
   </footer>
 </div>
 

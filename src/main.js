@@ -96,8 +96,8 @@ function toWorld(ev) {
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
 plate.addEventListener('pointerdown', (ev) => {
-  // The toast sits inside the plate; capturing its presses would paint under it and swallow its button clicks.
-  if (ev.target.closest('#toast')) return;
+  // The toast and paused badge sit inside the plate; capturing their presses would paint under them and swallow the clicks.
+  if (ev.target.closest('#toast, #pausedBadge')) return;
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
   if (!toastEl.hidden) hideToast();
@@ -173,6 +173,14 @@ function run() {
   schedule();
 }
 
+const pausedBadge = document.getElementById('pausedBadge');
+pausedBadge.addEventListener('click', () => app.togglePause());
+on('paused', (v) => {
+  plate.classList.toggle('is-paused', v);
+  pausedBadge.hidden = !v;
+  fpsEl.textContent = v ? 'paused' : '— fps';
+});
+
 function frame(now) {
   if (!params.paused) {
     acc += params.speed;
@@ -187,7 +195,7 @@ function frame(now) {
   frames++;
   if (now - lastFps >= 500) {
     const fps = Math.round((frames * 1000) / (now - lastFps));
-    fpsEl.textContent = `${fps} fps`;
+    fpsEl.textContent = params.paused ? 'paused' : `${fps} fps`;
     cellsEl.textContent = `${countCells().toLocaleString()} grains`;
     frames = 0;
     lastFps = now;
