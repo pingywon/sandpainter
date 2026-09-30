@@ -54,7 +54,7 @@ and `tools/` are blocked). Update it with `git -C ~/sandpainter pull`.
 
 | File | Job |
 |---|---|
-| `src/engine/world.js` | Grid storage only: `cells`, `shade`, `aux`, `stamp` Uint8Arrays; `set`/`move`/`swap`; xorshift RNG (`rand`, `chance(pct)`, `randInt`) |
+| `src/engine/world.js` | Grid storage only: `cells`, `shade`, `aux`, `stamp` Uint8Arrays, `born` Uint16Array; `set`/`move`/`swap`/`fresh`; xorshift RNG (`rand`, `chance(pct)`, `randInt`) |
 | `src/engine/ids.js` | Element id constants, flag bits, and the `FLAGS`/`DENSITY`/`IGNITE` tables (kept here to avoid an import cycle) |
 | `src/engine/behaviors.js` | Reusable rules: `fallPowder`, `flowLiquid`, `riseGas`, `explode`, `produce`, `tryIgnite`, neighbour queries |
 | `src/engine/elements.js` | The registry. Every element is one `def(id, {...})` with colour, flags, density, ignite chance and an `update` function. Also `TRAY`, `SPIGOT_OPTIONS`, RANDOM pool |
@@ -68,13 +68,70 @@ Engine conventions:
 
 - `update(x, y, i, world, params)`; `i = y * w + x`. Behaviour helpers return `true` when
   they changed the cell so they chain with `||`.
-- `stamp` parity makes each cell update at most once per step. `move`/`swap`/`produce`
-  stamp the destination.
-- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), paused }`.
+- `stamp` parity makes each cell update at most once per step. `set`/`move`/`swap`/`produce`
+  stamp the cell they write, so anything a reaction creates ahead of the sweep waits a step.
+- **One cell per step (v1.1.0).** `set()` also records `born` (low 16 bits of the frame), and
+  `nearHot`/`nearHot8` ignore a hot cell born this step (`world.fresh(j)`). Without this, a flame
+  lit mid-sweep lit the next cell in the same sweep, so a 200-px fuse burned in 2 steps and an
+  oil slick in 4 (the owner: "physics should be maintained, right now it will spiral out of
+  control"). Also in `flowLiquid`: sideways dispersion may only displace a gas cell that has
+  not moved this step; otherwise each liquid cell along a row swapped the same flame one cell
+  further and carried it across the row in one step.
+- Fire lingers only while fed, so with one-cell-per-step spread the old catch chances let
+  fires die out; all `ignite` values were roughly doubled (oil 60, bloom 45, seed 40, plant 35,
+  stem 30, molten wax 8), measured so an oil slick and a plant block burn out fully.
+- `FIRE` with `aux >= 128` is a pinned flame (sits still, counts down to 128, then becomes an
+  ordinary rising flame). A fuse lights into one, so the next fuse cell, corners included,
+  always sees it: fuses burn exactly one pixel per step.
+- Plants grow only into *pooled* water (`pooled()` in elements.js): supported below, and the
+  row runs into something solid within `POOL_REACH` (24) cells on both sides without meeting air;
+  upward growth also needs water or ground above the target. A plant under a falling stream
+  used to climb it to the spigot (owner: "plants should grow, but not up the water blocking it").
+- Lava spits an ember into the empty cell above it (0.4% per step; 1.5% was too busy), so
+  methane drifting just above lava goes up (owner: "lava and napalm should ignite methane").
+- **Napalm is burning oil** (owner: "napalm should like oil on fire"): it flows like oil, is
+  always alight (pushes flames into open air or gas beside it, so methane goes off; an
+  occasional ball of flame rolls off the surface), burns away 0.3% per step, floats on water
+  and water cannot put it out; cryo turns it back into OIL. It is not `F_HOT` on purpose: a hot
+  liquid floating on water would boil the pond into steam.
+- A clone cell with nothing learned copies the element of a neighbouring clone cell, so the
+  whole block learns from one touch. It pours only out of its bottom (a gas out of its top),
+  5% per cell per step: pouring from every side flooded the screen.
+- **C-4 and nitro detonate as a whole** (`detonate()` in behaviors.js): flood-fill the
+  connected mass, blast every cell within `r` of its edge (C-4 22, nitro 12) in one step.
+  With one-cell-per-step physics a block otherwise burned through over ~10 steps (owner: "c4
+  should explode"). Blast cores are pinned flames so the fireball holds a few steps; blasts
+  leave far fewer embers than before (they cluttered the screen).
+- **Fixed timestep:** the frame loop steps the world 60 times a second times the speed,
+  whatever the refresh rate (the original does the same). One step per rAF ran 2.4x fast on a
+  144 Hz screen. Catch-up is capped at 4x speed steps per frame so a slow machine slows down
+  instead of spiralling.
+- **Open edges** (`params.box = false`, the default; `B` or the Edges button toggles): a
+  powder or liquid falling past the gravity-far edge and a gas rising past the other edge are
+  removed, exactly like the original's `doGravity`/`doRise`. This is the main reason the
+  original never fills up (owner: "there are actually too many particles ... look at the
+  original for the differences"). Scenes and recipes that need a floor paint one or use `box`.
+- Liquids reach further sideways per step (water/salt water 8, oil/nitro/acid 6, cryo 7,
+  napalm 5; lava and molten wax stay thick) so pours level into flat layers instead of heaping
+  (owner: "oil etc should act more like a fluid and a bit less like sand").
+- Default brush is 4 px (index 2), the original's default; 8 painted four times as much.
+- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), box, paused }`.
 - Flags drive generic behaviour: `F_HOT` ignites and melts, `F_FUEL` keeps fire alive,
   `F_INDESTRUCTIBLE` survives acid and blasts.
 - The frame loop runs on requestAnimationFrame with a 45 ms timer fallback, because some
-  embedded panes never fire rAF.
+  embedded panes never fire rAF; either way it steps by elapsed time (see Fixed timestep).
+
+## The original, for comparison
+
+Its code is plain JS at `https://artsology.com/sandpainting2.html` (`js/sandpainting/*.js`:
+canvasConfig, elements-3, particles, spigots, cursor, menu-3, game). It is GPL (Josh Don's
+Project Sand): read it to learn mechanics, never copy code. What we learned on 2026-09-29:
+660x580 grid drawn 1 grain per CSS pixel with one flat colour per element; 60 fps fixed;
+default pen 4 (sizes 2-64); spigots identical to ours (widths 0-25, 10 rows, 10%); falling
+off the bottom and rising off the top deletes the grain; explosions (C-4, napalm, methane,
+nitro) are painted fire discs from a separate particle system, not craters; there is no
+clone. We did not copy the flat colours (it would change the look); offer it if the owner
+still finds the screen busy.
 
 ## Adding an element
 
@@ -109,7 +166,7 @@ grow into water, seeds bloom on wet soil, acid eats sand but not wall, clone cop
 gravity flip, wind drift, concrete sets, save/load round-trip, undo. About 1.4 ms per step
 with ~17k grains. No horizontal scroll at 375 px wide.
 
-## Bugs fixed 2026-09-29 (v1.0.1), and why they happened
+## Bugs fixed 2026-09-29 (v1.0.1 and v1.1.0), and why they happened
 
 - **Dark-mode dropdowns white on white (Windows).** The spigot `<select>` had a transparent
   background and cream text; Windows draws the open list on white. Options now carry
@@ -123,12 +180,12 @@ with ~17k grains. No horizontal scroll at 375 px wide.
   `max-width: 100%`; whenever the width cap won, the canvas was taller than 4:3 (1.15 at
   1400x900). `.plate-wrap` is now a size container and the plate's width is
   `min(100cqw, available height * 4/3)`. The narrow layout switches the container off.
+- **Paused was not obvious (v1.1.0).** Pausing now dims the canvas (`.plate.is-paused`), shows
+  a `#pausedBadge` button on it (click to resume; `pointerdown` ignores it like the toast) and
+  the header counter reads "paused".
 
 ## Known behaviour (not bugs)
 
-- Fire crosses an oil slick almost at once (half of a 480-px slick in about 12 ticks):
-  ignition propagates along a row within one sweep of `simulation.js`, like the liquid sweep
-  below. It reads well as a flash fire; leave it unless the owner asks.
 - Fire rises. Fire painted in the air above fuel floats away without igniting it; it has
   to touch the fuel.
 - Liquid sideways flow uses an in-place sweep, so a freshly poured, unsettled pool can
@@ -149,8 +206,10 @@ Change an element, change the guide, and rerun `node tools/engine_checks.mjs`.
 `READ ME FIRST.txt`). Attach the zip plus `Sandpainter.html` and `Element-Guide.html` to a
 GitHub release: `gh release create vX.Y.Z dist/Sandpainter-vX.Y.Z.zip Sandpainter.html
 Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29);
-v1.0.1 the same day fixed the four bugs above. Point the README download line at the new
-zip name when you cut one.
+v1.0.1 the same day fixed the four bugs above; v1.1.0 (same day) is the one-cell-per-step
+physics, plants, lava sparks, clone learning, the paused badge, then open edges, the fixed
+timestep, whole-block C-4/nitro, burning napalm, gentler clones and flatter liquids. Point the README download
+line at the new zip name when you cut one.
 
 ## Publishing
 

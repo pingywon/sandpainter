@@ -29,10 +29,11 @@ const cursor = new Cursor(cursorCanvas);
 
 const params = {
   element: SAND,
-  brush: 3,          // index into BRUSH_SIZES
+  brush: 2,          // index into BRUSH_SIZES: 4 px, the original game's default
   speed: 1,
   gravity: 1,
   wind: 0,
+  box: false,        // false: things fall off the bottom and float off the top, like the original
   paused: false,
 };
 
@@ -64,6 +65,7 @@ export const app = {
   undo() { if (history.pop(world)) emit('undo'); },
   clear() { history.push(world); world.clear(); emit('clear'); },
   flipGravity() { params.gravity = -params.gravity; emit('gravity', params.gravity); },
+  toggleBox() { params.box = !params.box; emit('box', params.box); },
   setWind(v) { params.wind = Math.max(-100, Math.min(100, v | 0)); emit('wind', params.wind); },
   save(slot) { const ok = storage.save(slot, world); emit('saved', { slot, ok }); return ok; },
   load(slot) {
@@ -96,8 +98,8 @@ function toWorld(ev) {
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
 plate.addEventListener('pointerdown', (ev) => {
-  // The toast sits inside the plate; capturing its presses would paint under it and swallow its button clicks.
-  if (ev.target.closest('#toast')) return;
+  // The toast and paused badge sit inside the plate; capturing their presses would paint under them and swallow the clicks.
+  if (ev.target.closest('#toast, #pausedBadge')) return;
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
   if (!toastEl.hidden) hideToast();
@@ -143,6 +145,9 @@ fit();
 
 /* ---------------- frame loop ---------------- */
 let acc = 0;
+let lastFrame = 0;
+/* The world steps 60 times a second at speed 1, whatever the screen's refresh rate (the original does the same). */
+const STEP_MS = 1000 / 60;
 let frames = 0;
 let lastFps = performance.now();
 const fpsEl = document.getElementById('fps');
@@ -173,9 +178,20 @@ function run() {
   schedule();
 }
 
+const pausedBadge = document.getElementById('pausedBadge');
+pausedBadge.addEventListener('click', () => app.togglePause());
+on('paused', (v) => {
+  plate.classList.toggle('is-paused', v);
+  pausedBadge.hidden = !v;
+  fpsEl.textContent = v ? 'paused' : '— fps';
+});
+
 function frame(now) {
+  const dt = lastFrame ? Math.min(now - lastFrame, 250) : STEP_MS;
+  lastFrame = now;
   if (!params.paused) {
-    acc += params.speed;
+    // Capped so a slow machine or a background tab slows the world down instead of piling up steps.
+    acc = Math.min(acc + (dt / STEP_MS) * params.speed, 4 * Math.max(1, params.speed));
     while (acc >= 1) { step(world, params, spigots); acc -= 1; }
   } else if (stepRequest) {
     step(world, params, spigots);
@@ -187,7 +203,7 @@ function frame(now) {
   frames++;
   if (now - lastFps >= 500) {
     const fps = Math.round((frames * 1000) / (now - lastFps));
-    fpsEl.textContent = `${fps} fps`;
+    fpsEl.textContent = params.paused ? 'paused' : `${fps} fps`;
     cellsEl.textContent = `${countCells().toLocaleString()} grains`;
     frames = 0;
     lastFps = now;
