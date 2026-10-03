@@ -56,6 +56,13 @@ export function buildRail(root, app, speeds) {
   root.innerHTML = '';
   const p = app.params;
 
+  /* Tool */
+  const stool = section('Tool', 'l');
+  const tool = segmented(['free', 'line'], ['✏ Free', '╱ Line'], p.tool, (v) => app.setTool(v), 'Drawing tool');
+  tool.wrap.title = 'Free: paint as you drag. Line: drag a straight line, it paints when you let go (Esc cancels). (L)';
+  stool.append(tool.wrap);
+  app.on('tool', (v) => tool.set(v));
+
   /* Brush */
   const sb = section('Brush', '[ ]');
   const brush = segmented(BRUSH_SIZES.map((_, i) => i), BRUSH_SIZES.map(String), p.brush, (v) => app.setBrush(v), 'Brush size');
@@ -134,7 +141,11 @@ export function buildRail(root, app, speeds) {
     windRow.classList.toggle('active', v !== 0);
   });
   windRow.append(windLabel, wind, windVal);
-  sg.append(grav, edges, windRow);
+  const colourLabel = (c) => (c === 'classic' ? '<span class="glyph">▦</span> Single colours' : '<span class="glyph">▨</span> Mixed colours');
+  const colours = button(colourLabel(p.colours), () => app.toggleColours(), 'wide');
+  colours.title = "One flat colour per element, like the original game, or the newer mixed shades. (K)";
+  app.on('colours', (c) => { colours.innerHTML = colourLabel(c); });
+  sg.append(grav, edges, colours, windRow);
 
   /* Scenes */
   const sc = section('Scenes');
@@ -169,5 +180,5 @@ export function buildRail(root, app, speeds) {
   const png = button('Download PNG', () => app.exportPng(), 'wide');
   sx.append(png);
 
-  root.append(sb, ss, st, se, sg, sc, sx);
+  root.append(stool, sb, ss, st, se, sg, sc, sx);
 }

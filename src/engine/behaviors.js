@@ -143,7 +143,10 @@ export function fallPowder(x, y, i, w, p, slide = 100, sinkChance = 40) {
     return false;
   }
   const below = i + gy * W;
-  const b = w.cells[below];
+  const c = w.cells;
+  const b = c[below];
+  // Buried in its own kind below: no fall, sink or slide is possible, so skip the dice entirely.
+  if (b === id && x > 0 && x < W - 1 && c[below - 1] === id && c[below + 1] === id) return false;
   if (b === EMPTY) { w.move(i, below); return true; }
   if (canSink(id, b)) {
     if (chance(sinkChance)) { w.swap(i, below); return true; }
@@ -175,7 +178,12 @@ export function flowLiquid(x, y, i, w, p, spread = 4, mobility = 100) {
   const W = w.w;
   if (ny >= 0 && ny < w.h) {
     const below = i + gy * W;
-    const b = w.cells[below];
+    const c = w.cells;
+    const b = c[below];
+    // Interior of a pond of itself: below, both sides and both lower diagonals are the same
+    // liquid, so no move in this function can happen. Skip the dice; the outcome is identical.
+    if (b === id && x > 0 && x < W - 1 && c[i - 1] === id && c[i + 1] === id
+      && c[below - 1] === id && c[below + 1] === id) return false;
     if (b === EMPTY) { w.move(i, below); return true; }
     if (canSink(id, b) && chance(b && (FLAGS[b] & F_GAS) ? 60 : 30)) { w.swap(i, below); return true; }
     const dir = rand() < 0.5 ? -1 : 1;

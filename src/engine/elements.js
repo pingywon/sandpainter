@@ -66,7 +66,7 @@ def(WATER, {
   name: 'Water', group: 'Liquids', rgb: [36, 108, 232], rgb2: [76, 156, 255], flags: F_LIQUID, density: 1,
   hint: 'Levels out, boils near heat, freezes near ice',
   update: (x, y, i, w, p) => {
-    if (nearHot(x, y, i, w) && chance(55)) { w.set(i, STEAM); return; }
+    if (chance(55) && nearHot(x, y, i, w)) { w.set(i, STEAM); return; }
     flowLiquid(x, y, i, w, p, 8);
   },
 });
@@ -90,7 +90,7 @@ def(SALT, {
 def(SALT_WATER, {
   name: 'Salt water', rgb: [104, 168, 236], variance: 12, flags: F_LIQUID, density: 1.2,
   update: (x, y, i, w, p) => {
-    if (nearHot(x, y, i, w) && chance(45)) { w.set(i, chance(30) ? SALT : STEAM); return; }
+    if (chance(45) && nearHot(x, y, i, w)) { w.set(i, chance(30) ? SALT : STEAM); return; }
     flowLiquid(x, y, i, w, p, 8);
   },
 });
@@ -152,15 +152,19 @@ function stillWater(x, y, i, w, p) {
   return -1;
 }
 
+/** How far (in cells) growth can spread from a painted plant before it stops. */
+const GROW_SPAN = 14;
+
 def(PLANT, {
   name: 'Plant', group: 'Solids', rgb: [44, 190, 74], variance: 22, flags: F_STATIC | F_FUEL, ignite: 35,
-  hint: 'Grows into still water, burns, hates salt',
+  hint: 'Grows a patch into still water, burns, hates salt',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     // Only pooled water: a plant under a falling stream would otherwise climb it to the spigot.
-    if (chance(45)) {
+    // aux counts generations from a painted cell, so a sprig takes a patch, not the whole pond.
+    if (w.aux[i] < GROW_SPAN && chance(45)) {
       const j = stillWater(x, y, i, w, p);
-      if (j !== -1) { w.set(j, PLANT); return; }
+      if (j !== -1) { w.set(j, PLANT, w.aux[i] + 1); return; }
     }
     if (chance(5) && near4(x, y, i, w, SALT) !== -1) w.set(i, EMPTY);
   },
@@ -263,7 +267,7 @@ def(MOLTEN_WAX, {
   name: 'Molten wax', rgb: [246, 234, 200], variance: 6, flags: F_LIQUID | F_FUEL, density: 0.9, ignite: 8,
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
-    if (!nearHot(x, y, i, w) && chance(1.5)) {
+    if (chance(1.5) && !nearHot(x, y, i, w)) {
       const ny = y + p.gravity;
       if (ny < 0 || ny >= w.h || w.cells[i + p.gravity * w.w] !== EMPTY) { w.set(i, WAX); return; }
     }
@@ -369,6 +373,9 @@ def(LAVA, {
       const ay = y - p.gravity, a = i - p.gravity * w.w;
       if (ay >= 0 && ay < w.h && w.cells[a] === EMPTY) w.set(a, EMBER, 3 + randInt(5));
     }
+    // Free fall at full speed; only spreading and sinking stay sluggish.
+    const ny = y + p.gravity;
+    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === EMPTY) { w.move(i, i + p.gravity * w.w); return; }
     flowLiquid(x, y, i, w, p, 2, 35);
   },
 });
@@ -426,7 +433,7 @@ def(SNOW, {
   name: 'Snow', group: 'Powders', rgb: [246, 248, 255], variance: 5, flags: F_POWDER, density: 0.5,
   hint: 'Drifts down, melts near warmth or salt',
   update: (x, y, i, w, p) => {
-    if (nearHot(x, y, i, w) && chance(60)) { w.set(i, WATER); return; }
+    if (chance(60) && nearHot(x, y, i, w)) { w.set(i, WATER); return; }
     if (chance(15) && near4(x, y, i, w, SALT) !== -1) { w.set(i, WATER); return; }
     if (chance(8) && near4(x, y, i, w, WATER) !== -1) { w.set(i, WATER); return; }
     if (chance(0.03)) { w.set(i, WATER); return; }
