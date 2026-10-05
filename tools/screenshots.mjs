@@ -32,6 +32,8 @@ const surface = (x, id) => { let y = 0; while (y < S.world.h - 1 && S.world.cell
 rect(0, 472, 639, 479, I.WALL);
 `;
 
+const HIDE_TOAST = `document.getElementById('toast')?.setAttribute('hidden', ''); const t = document.getElementById('toast'); if (t) t.style.display = 'none';`;
+
 const SCENES = [
   {
     name: '02-oil-fire',
@@ -51,7 +53,7 @@ const SCENES = [
     js: `
       rect(0, 300, 639, 470, I.WATER);
       pour(1, I.LAVA, 4); pour(2, I.LAVA, 3);
-      S.tick(1300);
+      S.tick(450);
       ({ rock: count(I.ROCK), lava: count(I.LAVA), steam: count(9) });`,
   },
   {
@@ -168,6 +170,7 @@ await run('01-overview', async (p) => {
 for (const sc of SCENES) {
   await run(sc.name, async (p) => {
     const info = await p.eval(PRE + sc.js);
+    await p.eval(HIDE_TOAST);
     await p.sleep(400);
     const box = await canvasBox(p);
     if (sc.zoom) {
