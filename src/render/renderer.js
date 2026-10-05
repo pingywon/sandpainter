@@ -12,20 +12,23 @@ function abgr(r, g, b) {
   return ((255 << 24) | (clamp(b) << 16) | (clamp(g) << 8) | clamp(r)) >>> 0;
 }
 
-export function buildPalette() {
+/** flat: one colour per element, like the original game. Otherwise shades mix rgb→rgb2 or jitter by variance. */
+export function buildPalette(flat = false) {
   const pal = new Uint32Array(256 * SHADES);
   for (let id = 0; id < 256; id++) {
     const e = ELEMENTS[id];
     if (!e) continue;
     const [r, g, b] = e.rgb;
     for (let s = 0; s < SHADES; s++) {
-      const t = s / (SHADES - 1);
       let c;
-      if (e.rgb2) {
+      if (flat) {
+        c = abgr(r, g, b);
+      } else if (e.rgb2) {
+        const t = s / (SHADES - 1);
         const [r2, g2, b2] = e.rgb2;
         c = abgr(r + (r2 - r) * t, g + (g2 - g) * t, b + (b2 - b) * t);
       } else {
-        const f = (t - 0.5) * 2 * e.variance;
+        const f = (s / (SHADES - 1) - 0.5) * 2 * e.variance;
         c = abgr(r + f, g + f, b + f);
       }
       pal[id * SHADES + s] = c;
@@ -44,6 +47,11 @@ export class Renderer {
     this.img = this.ctx.createImageData(world.w, world.h);
     this.buf = new Uint32Array(this.img.data.buffer);
     this.pal = buildPalette();
+  }
+
+  /** Switch between the original's single flat colour per element and the mixed look. */
+  setFlat(flat) {
+    this.pal = buildPalette(flat);
   }
 
   draw() {
@@ -68,6 +76,7 @@ export class Cursor {
     this.size = 4;
     this.scale = 1;
     this.visible = false;
+    this.from = null; // [x, y] anchor of a line-tool drag; a preview line is drawn to the cursor
   }
 
   resize(cssW, cssH, worldW) {
@@ -88,6 +97,20 @@ export class Cursor {
     c.clearRect(0, 0, cv.width, cv.height);
     if (!this.visible) return;
     const s = this.scale;
+    if (this.from) {
+      // Line-tool preview: a ghost of the stroke that painting will make on release.
+      const half = this.size <= 2 ? this.size / 2 : 0;
+      c.save();
+      c.lineCap = 'round';
+      c.globalAlpha = 0.5;
+      c.lineWidth = Math.max(this.size * s, 1.5);
+      c.strokeStyle = accent;
+      c.beginPath();
+      c.moveTo((this.from[0] + half) * s, (this.from[1] + half) * s);
+      c.lineTo((this.x + half) * s, (this.y + half) * s);
+      c.stroke();
+      c.restore();
+    }
     const r = Math.max(this.size * s / 2, 2.5);
     const px = (this.x + (this.size <= 2 ? this.size / 2 : 0)) * s;
     const py = (this.y + (this.size <= 2 ? this.size / 2 : 0)) * s;

@@ -112,9 +112,10 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   s.w.set(88 * W + 100, ID.PLANT);
   const sw0 = count(s.w, ID.SALT_WATER), w0 = count(s.w, ID.WATER);
   run(s, 300);
-  // Plants stop one row under the surface, so a little fresh water is always left on top.
-  check('plant drinks fresh water but not salt water', count(s.w, ID.WATER) < w0 * 0.15 && count(s.w, ID.SALT_WATER) > sw0 * 0.9,
-    `fresh water left ${count(s.w, ID.WATER)}, salt water ${sw0} -> ${count(s.w, ID.SALT_WATER)}`);
+  // A sprig takes a patch of the fresh side, never touches the salt side, and leaves most of the pond.
+  check('plant drinks a patch of fresh water but no salt water',
+    count(s.w, ID.PLANT) > 80 && count(s.w, ID.WATER) > w0 * 0.5 && count(s.w, ID.SALT_WATER) > sw0 * 0.9,
+    `plant ${count(s.w, ID.PLANT)}, fresh water ${w0} -> ${count(s.w, ID.WATER)}, salt water ${sw0} -> ${count(s.w, ID.SALT_WATER)}`);
 }
 {
   const s = scene();
@@ -195,7 +196,11 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   s.w.set(88 * W + 60, ID.PLANT);
   const w0 = count(s.w, ID.WATER);
   run(s, 600);
-  check('a plant still fills a pond', count(s.w, ID.PLANT) > w0 * 0.8, `plant ${count(s.w, ID.PLANT)} of ${w0} pond cells`);
+  const p1 = count(s.w, ID.PLANT);
+  run(s, 300);
+  // Growth spreads about GROW_SPAN cells from the planted sprig, then stops for good.
+  check('a plant takes a patch of a pond, then stops', p1 > 100 && p1 < w0 * 0.25 && count(s.w, ID.PLANT) === p1,
+    `plant ${p1} of ${w0} pond cells, ${count(s.w, ID.PLANT)} after 300 more steps`);
 }
 {
   const s = scene();
@@ -274,6 +279,25 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   run(open, 400); run(boxed, 400);
   check('with open edges sand falls off the bottom; in a closed box it piles up',
     count(open.w, ID.SAND) === 0 && count(boxed.w, ID.SAND) === s0, `open ${count(open.w, ID.SAND)}, closed box ${count(boxed.w, ID.SAND)} of ${s0}`);
+}
+{
+  // Lava free-falls at full speed now; only spreading and sinking stay sluggish.
+  const s = scene();
+  s.p.box = true;
+  s.w.set(2 * W + 60, ID.LAVA);
+  let t = 0;
+  while (t < 300) {
+    run(s, 1); t++;
+    let done = false;
+    for (let x = 0; x < W; x++) if (s.w.cells[88 * W + x] === ID.LAVA) { done = true; break; }
+    if (done) break;
+  }
+  check('lava falls through open air at full speed', t >= 80 && t <= 110, `86-px drop took ${t} steps`);
+}
+{
+  const sp = new Spigots();
+  check('a new game starts with every spigot off', sp.list.every((q) => q.rate === 0),
+    `rates ${sp.list.map((q) => q.rate).join(',')}`);
 }
 {
   // Liquids level out: oil poured onto water in a basin ends up as a flat layer, not a heap.

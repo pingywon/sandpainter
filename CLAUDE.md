@@ -115,7 +115,8 @@ Engine conventions:
   napalm 5; lava and molten wax stay thick) so pours level into flat layers instead of heaping
   (owner: "oil etc should act more like a fluid and a bit less like sand").
 - Default brush is 4 px (index 2), the original's default; 8 painted four times as much.
-- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), box, paused }`.
+- `params`: `{ element, brush, speed, gravity (+1 down / -1 up), wind (-100..100), box, paused, tool ('free' | 'line'), colours ('classic' | 'mixed') }`.
+- **Round 3 (v1.2.0, owner todos SAND-1..7).** Line tool (`L`, Tool rail section; the stroke previews as a ghost and paints on release, `Esc` cancels). Plants grow a 14-cell patch, not the whole pond. All four spigots start off. Settled-grain fast path in the step loop and the canvas repaints only when the world changed. Single flat colour per element is the default like the original (`params.colours = 'classic'`, `K` or the Single/Mixed button flips it, saved in localStorage `sandpainter-colours`). Lava falls through open air at full speed but still spreads slowly. Speed 1 is 30 steps a second (half the old pace); speed 2 is the old full pace.
 - Flags drive generic behaviour: `F_HOT` ignites and melts, `F_FUEL` keeps fire alive,
   `F_INDESTRUCTIBLE` survives acid and blasts.
 - The frame loop runs on requestAnimationFrame with a 45 ms timer fallback, because some
@@ -145,7 +146,7 @@ still finds the screen busy.
 `node tools/engine_checks.mjs` runs the engine headless on small scenes and checks the
 less obvious claims in `Element-Guide.html` (sand floats on lava, acid defuses C-4, walls
 don't shield blasts, salt water sinks, seeds need wet soil, cryo kills torches, ...).
-Exits 1 on any failure. Otherwise there is no test runner.
+Exits 1 on any failure (28 checks at v1.2.0). Otherwise there is no test runner.
 
 `tools/cdp.mjs` drives headless Chromium over the DevTools protocol (real mouse events, dark or
 light mode, any window size); `tools/screenshots.mjs` uses it to stage scenes through the app
@@ -208,12 +209,13 @@ GitHub release: `gh release create vX.Y.Z dist/Sandpainter-vX.Y.Z.zip Sandpainte
 Element-Guide.html --title ... --notes-file ...`. v1.0.0 was the first (2026-09-29);
 v1.0.1 the same day fixed the four bugs above; v1.1.0 (same day) is the one-cell-per-step
 physics, plants, lava sparks, clone learning, the paused badge, then open edges, the fixed
-timestep, whole-block C-4/nitro, burning napalm, gentler clones and flatter liquids. Point the README download
-line at the new zip name when you cut one.
+timestep, whole-block C-4/nitro, burning napalm, gentler clones and flatter liquids. v1.2.0 (2026-10-05) is round 3, above.
+Point the README download line at the new zip name when you cut one, and give the older
+releases' notes a "Get 1.x instead" pointer to the newest.
 
 ## Publishing
 
-Live artifact (private to the owner): https://claude.ai/artifact/WmkzidJeNKFS4PSmmjqjkM
+Live artifact (private to the owner, the pre-1.0 build, not republished): https://claude.ai/artifact/WmkzidJeNKFS4PSmmjqjkM
 
 The artifact host wraps pages in its own html/head/body, so publish the generated
 `dist/sandpainter.html` (run `python3 tools/build_artifact.py` after editing `index.html`)

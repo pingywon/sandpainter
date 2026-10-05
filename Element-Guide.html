@@ -297,8 +297,8 @@
       </ul>
     </article>
     <article class="card">
-      <div class="card-head"><canvas class="sw" data-el="lava"></canvas><div><h4>Lava</h4><span class="tag">heavy, slow, always hot</span></div></div>
-      <p>The heaviest liquid and the slowest. It's permanently hot, so it lights, melts, boils or sets off everything it touches, and it never cools down on its own.</p>
+      <div class="card-head"><canvas class="sw" data-el="lava"></canvas><div><h4>Lava</h4><span class="tag">heavy, slow to spread, always hot</span></div></div>
+      <p>The heaviest liquid. It drops through open air at full speed but creeps when it spreads or sinks. It's permanently hot, so it lights, melts, boils or sets off everything it touches, and it never cools down on its own.</p>
       <ul>
         <li><b>Water or salt water:</b> hisses into steam and cools into <b>rock</b>.</li>
         <li><b>Cryo:</b> instantly turns it to rock.</li>
@@ -343,7 +343,7 @@
     </article>
     <article class="card">
       <div class="card-head"><canvas class="sw" data-el="plant"></canvas><div><h4>Plant</h4><span class="tag">thirsty</span></div></div>
-      <p>Grows into still water. Drop a little plant in a pond and it fills the pond, stopping just under the surface. A falling stream, or a puddle a stream keeps topping up on it, won't make it grow, so it can't climb up to a spigot.</p>
+      <p>Grows into still water — a patch, not the whole pond. Drop a little plant in a pond and it spreads about 14 cells around where it was planted, staying under the surface, then stops; plant more sprigs to grow more. A falling stream, or a puddle a stream keeps topping up on it, won't make it grow, so it can't climb up to a spigot.</p>
       <ul>
         <li><b>Salt water:</b> won't drink it.</li>
         <li><b>Salt:</b> next to it, slowly kills it.</li>
@@ -556,12 +556,14 @@
     <div class="rule"><b>Gravity (<kbd>G</kbd>)</b><p>Flips everything. Powders and liquids fall up, gases sink, the spigots move to the bottom edge, and stems grow the other way.</p></div>
     <div class="rule"><b>Edges (<kbd>B</kbd>)</b><p>Out of the box, the edges are open, like the original game: things that fall past the bottom are gone, and gases float away off the top. Press <kbd>B</kbd> (or the Edges button) for a closed box that holds everything in.</p></div>
     <div class="rule"><b>Wind (slider)</b><p>Pushes gases hardest, steers liquids as they flow, and nudges powders a little. It only moves things into empty space.</p></div>
-    <div class="rule"><b>Spigots</b><p>Four pourers along the top. Click a spigot's name to pick what it pours: sand, water, salt, oil, gunpowder, nitro, napalm, concrete, lava, cryo, snow, acid, seed, soil or Random. Its five bars set how hard. <b>Off</b> stops it, and clicking any bar starts it again.</p></div>
-    <div class="rule"><b>Speed and step</b><p><kbd>-</kbd> <kbd>+</kbd> run the world from quarter speed to 4×. <kbd>Space</kbd> pauses, <kbd>.</kbd> moves one tick at a time: good for watching a reaction frame by frame.</p></div>
+    <div class="rule"><b>Spigots</b><p>Four pourers along the top, all <b>off</b> when the game opens. Click a spigot's name to pick what it pours: sand, water, salt, oil, gunpowder, nitro, napalm, concrete, lava, cryo, snow, acid, seed, soil or Random. Its five bars set how hard. Clicking any bar starts it, <b>off</b> stops it.</p></div>
+    <div class="rule"><b>Speed and step</b><p><kbd>-</kbd> <kbd>+</kbd> pick a speed from <b>&frac14;</b> to <b>4</b>. <b>1</b> is a relaxed 30 steps a second, <b>2</b> is the full pace of the original game (60 a second) and <b>4</b> is double that. <kbd>Space</kbd> pauses, <kbd>.</kbd> moves one tick at a time: good for watching a reaction frame by frame.</p></div>
+    <div class="rule"><b>Line tool (<kbd>L</kbd>)</b><p>Flip the <b>Tool</b> switch on the right from Free to Line (or press <kbd>L</kbd>). Press and drag to stretch out a straight line, which shows as a faint preview, and let go to paint it. <kbd>Esc</kbd> drops a half-drawn line. Walls, floors and fuses are quick this way.</p></div>
+    <div class="rule"><b>Single or mixed colours (<kbd>K</kbd>)</b><p>The game opens with <b>one flat colour per element</b>, like the original, so you can read a scene at a glance. The <b>Single colours</b> button on the right (or <kbd>K</kbd>) switches to <b>Mixed colours</b>, where every grain is a slightly different shade. It changes only how things look, never how they behave, and the game remembers your choice.</p></div>
   </div>
 
   <footer>
-    Sandpainter is a from-scratch remake of Artsology's Sandpainting Game v2. This guide describes the game as of v1.1.
+    Sandpainter is a from-scratch remake of Artsology's Sandpainting Game v2. This guide describes the game as of v1.2.
   </footer>
 </div>
 

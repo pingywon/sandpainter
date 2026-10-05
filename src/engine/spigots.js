@@ -11,11 +11,12 @@ export const NUM_SPIGOTS = 4;
 
 export class Spigots {
   constructor() {
+    // All four start off: a new game is a blank page until a spigot is switched on.
     this.list = [
-      { element: SAND, rate: 1 },
-      { element: WATER, rate: 1 },
-      { element: SALT, rate: 1 },
-      { element: OIL, rate: 1 },
+      { element: SAND, rate: 0 },
+      { element: WATER, rate: 0 },
+      { element: SALT, rate: 0 },
+      { element: OIL, rate: 0 },
     ];
     this.listeners = new Set();
   }

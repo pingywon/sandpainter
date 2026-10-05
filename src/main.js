@@ -27,6 +27,11 @@ const plate = document.getElementById('plate');
 const renderer = new Renderer(worldCanvas, world);
 const cursor = new Cursor(cursorCanvas);
 
+function storedColours() {
+  try { return localStorage.getItem('sandpainter-colours') === 'mixed' ? 'mixed' : 'classic'; }
+  catch { return 'classic'; }
+}
+
 const params = {
   element: SAND,
   brush: 2,          // index into BRUSH_SIZES: 4 px, the original game's default
@@ -35,6 +40,8 @@ const params = {
   wind: 0,
   box: false,        // false: things fall off the bottom and float off the top, like the original
   paused: false,
+  tool: 'free',      // 'free' drags a stroke; 'line' drags a straight line, painted on release
+  colours: storedColours(), // 'classic': one flat colour per element, like the original. 'mixed': shaded.
 };
 
 /* ---------------- tiny event bus ---------------- */
@@ -49,6 +56,9 @@ function emit(evt, data) {
 }
 
 let stepRequest = false;
+let needsDraw = true;
+/** Mark the world canvas stale; the frame loop repaints it once, instead of every refresh. */
+function touch() { needsDraw = true; }
 
 export const app = {
   world, params, spigots, history, renderer, cursor, canvas: worldCanvas,
@@ -60,10 +70,18 @@ export const app = {
     emit('brush', params.brush);
   },
   setSpeed(v) { params.speed = v; emit('speed', v); },
+  setTool(t) { params.tool = t; emit('tool', t); },
+  toggleColours() {
+    params.colours = params.colours === 'classic' ? 'mixed' : 'classic';
+    renderer.setFlat(params.colours === 'classic');
+    try { localStorage.setItem('sandpainter-colours', params.colours); } catch { /* storage blocked */ }
+    touch();
+    emit('colours', params.colours);
+  },
   togglePause() { params.paused = !params.paused; emit('paused', params.paused); },
   stepOnce() { if (!params.paused) { params.paused = true; emit('paused', true); } stepRequest = true; },
-  undo() { if (history.pop(world)) emit('undo'); },
-  clear() { history.push(world); world.clear(); emit('clear'); },
+  undo() { if (history.pop(world)) { touch(); emit('undo'); } },
+  clear() { history.push(world); world.clear(); touch(); emit('clear'); },
   flipGravity() { params.gravity = -params.gravity; emit('gravity', params.gravity); },
   toggleBox() { params.box = !params.box; emit('box', params.box); },
   setWind(v) { params.wind = Math.max(-100, Math.min(100, v | 0)); emit('wind', params.wind); },
@@ -72,6 +90,7 @@ export const app = {
     history.push(world);
     const ok = storage.load(slot, world);
     if (!ok) history.pop(world);
+    touch();
     emit('loaded', { slot, ok });
     return ok;
   },
@@ -79,8 +98,8 @@ export const app = {
   hasAutosave() { return storage.info('auto') !== null; },
   toast(msg, actions) { showToast(msg, actions); },
   /** Run n simulation steps synchronously (used by tests and the step button). */
-  tick(n = 1) { for (let k = 0; k < n; k++) step(world, params, spigots); },
-  paint(x0, y0, x1, y1, id, size = BRUSH_SIZES[params.brush]) { paintLine(world, x0, y0, x1, y1, id, size); },
+  tick(n = 1) { for (let k = 0; k < n; k++) step(world, params, spigots); touch(); },
+  paint(x0, y0, x1, y1, id, size = BRUSH_SIZES[params.brush]) { paintLine(world, x0, y0, x1, y1, id, size); touch(); },
 };
 
 /* ---------------- pointer painting ---------------- */
@@ -106,31 +125,50 @@ plate.addEventListener('pointerdown', (ev) => {
   plate.setPointerCapture(ev.pointerId);
   painting = true;
   erasing = ev.button === 2 || ev.shiftKey;
-  history.push(world);
   const [x, y] = toWorld(ev);
   last = [x, y];
+  cursor.set(x, y, app.brushSize, true);
+  if (params.tool === 'line') {
+    // Anchor only; the line paints on release, with a preview in the meantime.
+    cursor.from = [x, y];
+    return;
+  }
+  history.push(world);
   const id = erasing ? EMPTY : params.element;
   paintLine(world, x, y, x, y, id, app.brushSize);
-  cursor.set(x, y, app.brushSize, true);
+  touch();
 });
 
 plate.addEventListener('pointermove', (ev) => {
   const [x, y] = toWorld(ev);
   cursor.set(x, y, app.brushSize, true);
   if (!painting) return;
+  if (params.tool === 'line') { last = [x, y]; return; }
   const id = erasing ? EMPTY : params.element;
   paintLine(world, last[0], last[1], x, y, id, app.brushSize);
+  touch();
   last = [x, y];
 });
 
-function endStroke(ev) {
+function endStroke(ev, cancelled = false) {
   if (!painting) return;
   painting = false;
+  if (cursor.from) {
+    if (!cancelled && last) {
+      history.push(world);
+      const id = erasing ? EMPTY : params.element;
+      paintLine(world, cursor.from[0], cursor.from[1], last[0], last[1], id, app.brushSize);
+      touch();
+    }
+    cursor.from = null;
+  }
   last = null;
   try { plate.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
 }
 plate.addEventListener('pointerup', endStroke);
-plate.addEventListener('pointercancel', endStroke);
+plate.addEventListener('pointercancel', (ev) => endStroke(ev, true));
+// Escape drops an in-progress line without painting it.
+on('cancel-stroke', () => { if (painting) { painting = false; cursor.from = null; last = null; } });
 plate.addEventListener('pointerleave', () => { if (!painting) cursor.set(-1, -1, app.brushSize, false); });
 
 /* ---------------- sizing ---------------- */
@@ -146,8 +184,9 @@ fit();
 /* ---------------- frame loop ---------------- */
 let acc = 0;
 let lastFrame = 0;
-/* The world steps 60 times a second at speed 1, whatever the screen's refresh rate (the original does the same). */
-const STEP_MS = 1000 / 60;
+/* The world steps 30 times a second at speed 1, whatever the screen's refresh rate.
+ * That is half the original's pace: the old full speed felt too fast, so it is now speed 2. */
+const STEP_MS = 1000 / 30;
 let frames = 0;
 let lastFps = performance.now();
 const fpsEl = document.getElementById('fps');
@@ -192,12 +231,14 @@ function frame(now) {
   if (!params.paused) {
     // Capped so a slow machine or a background tab slows the world down instead of piling up steps.
     acc = Math.min(acc + (dt / STEP_MS) * params.speed, 4 * Math.max(1, params.speed));
-    while (acc >= 1) { step(world, params, spigots); acc -= 1; }
+    while (acc >= 1) { step(world, params, spigots); acc -= 1; needsDraw = true; }
   } else if (stepRequest) {
     step(world, params, spigots);
     stepRequest = false;
+    needsDraw = true;
   }
-  renderer.draw();
+  // Repaint only when the world changed: a 144 Hz screen otherwise redraws the same 307k cells 144 times a second.
+  if (needsDraw) { renderer.draw(); needsDraw = false; }
   cursor.draw(accent);
 
   frames++;
@@ -220,11 +261,12 @@ function renderStatus() {
   const hint = document.createElement('span');
   hint.textContent = elementHint(id);
   const brush = document.createElement('em');
-  brush.textContent = `brush ${app.brushSize}`;
+  brush.textContent = `${params.tool === 'line' ? 'line · ' : ''}brush ${app.brushSize}`;
   statusEl.append(name, hint, brush);
 }
 on('element', renderStatus);
 on('brush', renderStatus);
+on('tool', renderStatus);
 
 const toastEl = document.getElementById('toast');
 let toastTimer = null;
@@ -297,6 +339,7 @@ shotCopy.addEventListener('click', async () => {
 });
 
 /* ---------------- boot ---------------- */
+renderer.setFlat(params.colours === 'classic');
 buildTray(document.getElementById('tray'), app);
 buildSpigotBar(spigotBar, app);
 buildRail(document.getElementById('rail'), app, SPEEDS);
