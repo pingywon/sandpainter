@@ -11,7 +11,7 @@ A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#
 You don't need to install anything.
 
 1. Open the [**Releases** page](https://github.com/pingywon/sandpainter/releases/latest)
-   and download **`Sandpainter-v1.1.0.zip`** (under "Assets").
+   and download **`Sandpainter-v1.2.0.zip`** (under "Assets").
 2. Unzip it.
    - **Windows:** right-click the zip, choose **Extract All**, then **Extract**.
    - **Mac:** double-click the zip.
@@ -40,6 +40,8 @@ recipes to try. You can also open it from the **?** button inside the game.
 | `Space` | Pause / play |
 | `.` | Move forward one tick |
 | `Ctrl` + `Z` | Undo the last stroke |
+| `L` | Line tool: drag a straight line, let go to paint it (`Esc` cancels) |
+| `K` | Single colours (like the original) or mixed colours |
 | `[` and `]` | Smaller / bigger brush |
 | `-` and `+` | Slower / faster |
 | `1` to `9` | Pick one of the first nine elements |
@@ -52,22 +54,24 @@ recipes to try. You can also open it from the **?** button inside the game.
 screen never fills up. Press **B** (or the Edges button on the right) for a closed box that
 keeps everything.
 
-**The four spigots** above the canvas pour on their own. Click a spigot's name to choose
-what it pours, and its bars to set how hard. **OFF** stops it; click any bar to start it again.
+**The four spigots** above the canvas start switched off. Click a spigot's name to choose
+what it pours, and any of its bars to start it and set how hard. **OFF** stops it again.
 
 The panel on the right also has a wind slider, three save slots and a **Download PNG**
 button for a picture of your painting.
 
 ## Screenshots
 
-Every picture below is the real game, set up with the same elements you can paint.
+Every picture below is the real game, set up with the same elements you can paint. The spigots
+start off when you open the game; in these pictures they have been switched on.
 
 ![The whole game: element tray on the left, four spigots above the canvas, controls on the right](docs/screenshots/01-overview.png)
 
 **The whole game.** Elements on the left, the four spigots along the top, controls on the
-right. Here the spigots pour sand, water, salt and oil into two walled pools. On the left,
-plants filled the pool up to just under the surface, but they don't climb the falling water.
-On the right, oil floats on the water.
+right, including the **Tool** switch (Free or Line) and the **Single colours** button. Here the
+spigots pour sand, water, salt and oil into two walled pools. On the left, a few plants grow
+along the bottom of the pool; they spread a small patch and don't climb the falling water. On
+the right, oil floats on the water.
 
 ![A slick of oil on water, burning across its whole surface](docs/screenshots/02-oil-fire.png)
 
@@ -75,11 +79,12 @@ On the right, oil floats on the water.
 slick, one pixel at a time. Where flame reaches the water it dies in a puff of steam; the pale
 trail rising behind the flames is that steam.
 
-![Two streams of lava falling into a lake, with rock mounds on the bottom and steam at the top](docs/screenshots/03-volcano.png)
+![Two streams of lava falling into a lake, with white steam where they hit the water and brown flecks of rock sinking below](docs/screenshots/03-volcano.png)
 
-**Volcano.** Two spigots pour lava into a lake. Lava is the heaviest liquid, so it sinks, but
-every drop that touches water cools into rock (the brown mounds) and boils the water into
-steam, which rises to the top.
+**Volcano.** Two spigots pour lava into a lake. Lava drops through open air at full speed, then
+every drop that touches water cools into rock (the brown flecks sinking below the surface) and
+boils some of the water into steam (the pale mist around each stream). Leave it running and the
+rock builds up into mounds on the bottom.
 
 ![A row of green stems with pink, gold, violet, coral and pale-blue flowers growing out of brown soil](docs/screenshots/04-garden.png)
 
@@ -101,8 +106,8 @@ off the top. Water can't put it out; cryo can.
 ![Four clone blocks pouring lava, water, sand and snow](docs/screenshots/06-clone-fountains.png)
 
 **Clone fountains.** Paint a clone block, then drop a little of something on top: the whole
-block learns it and pours it out of its bottom forever. Lava, water, sand and snow here. The water spills off the grey shelf, and where it
-meets the lava on the floor, the two turn into rock.
+block learns it and pours it out of its bottom forever. Lava, water, sand and snow here. The
+water pours onto a grey shelf, and the lava and sand pile up on the floor.
 
 ![A lake with ice forming where cryo lands, snow melting into it, and ice blobs on the bottom](docs/screenshots/07-deep-freeze.png)
 
@@ -182,7 +187,7 @@ node --experimental-websocket tools/screenshots.mjs 02 05    # just these
 Make a release zip (it lands in `dist/`):
 
 ```bash
-python3 tools/make_release.py 1.0.1
+python3 tools/make_release.py 1.2.0
 ```
 
 ### What's where
