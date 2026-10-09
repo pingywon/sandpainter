@@ -24,6 +24,7 @@ export function bindShortcuts(app, speeds) {
       case 'c': case 'C': app.emit('request-clear'); break;
       case 'l': case 'L': app.setTool(p.tool === 'line' ? 'free' : 'line'); break;
       case 'k': case 'K': app.toggleColours(); break;
+      case 'f': case 'F': app.toggleFullscreen(); break;
       case 'Escape': app.emit('cancel-stroke'); break;
       case '-': case '_': app.setSpeed(speeds[Math.max(0, speeds.indexOf(p.speed) - 1)]); break;
       case '=': case '+': app.setSpeed(speeds[Math.min(speeds.length - 1, speeds.indexOf(p.speed) + 1)]); break;

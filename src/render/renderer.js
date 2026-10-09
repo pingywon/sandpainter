@@ -77,6 +77,12 @@ export class Cursor {
     this.scale = 1;
     this.visible = false;
     this.from = null; // [x, y] anchor of a line-tool drag; a preview line is drawn to the cursor
+    this.vx = 0; this.vy = 0; this.z = 1; // zoom view: world cell at the plate's top-left, zoom factor
+  }
+
+  /** Follow the zoom view so the ring sits on the right cell at any zoom. */
+  setView(vx, vy, z) {
+    this.vx = vx; this.vy = vy; this.z = z;
   }
 
   resize(cssW, cssH, worldW) {
@@ -96,7 +102,9 @@ export class Cursor {
     const c = this.ctx, cv = this.canvas;
     c.clearRect(0, 0, cv.width, cv.height);
     if (!this.visible) return;
-    const s = this.scale;
+    const s = this.scale * this.z;
+    const sx = (x) => (x - this.vx) * s;
+    const sy = (y) => (y - this.vy) * s;
     if (this.from) {
       // Line-tool preview: a ghost of the stroke that painting will make on release.
       const half = this.size <= 2 ? this.size / 2 : 0;
@@ -106,14 +114,14 @@ export class Cursor {
       c.lineWidth = Math.max(this.size * s, 1.5);
       c.strokeStyle = accent;
       c.beginPath();
-      c.moveTo((this.from[0] + half) * s, (this.from[1] + half) * s);
-      c.lineTo((this.x + half) * s, (this.y + half) * s);
+      c.moveTo(sx(this.from[0] + half), sy(this.from[1] + half));
+      c.lineTo(sx(this.x + half), sy(this.y + half));
       c.stroke();
       c.restore();
     }
     const r = Math.max(this.size * s / 2, 2.5);
-    const px = (this.x + (this.size <= 2 ? this.size / 2 : 0)) * s;
-    const py = (this.y + (this.size <= 2 ? this.size / 2 : 0)) * s;
+    const px = sx(this.x + (this.size <= 2 ? this.size / 2 : 0));
+    const py = sy(this.y + (this.size <= 2 ? this.size / 2 : 0));
     c.lineWidth = Math.max(1, this.dpr);
     c.strokeStyle = 'rgba(0,0,0,0.55)';
     c.beginPath(); c.arc(px, py, r + 1, 0, Math.PI * 2); c.stroke();

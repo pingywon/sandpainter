@@ -413,7 +413,8 @@ def(SOIL, {
   name: 'Soil', group: 'Powders', rgb: [122, 76, 36], variance: 16, flags: F_POWDER, density: 2,
   hint: 'Soaks up water, seeds grow in it when wet',
   update: (x, y, i, w, p) => {
-    if (chance(20)) {
+    // Thirsty: drink before the water can run off the pile.
+    if (chance(60)) {
       const j = near4(x, y, i, w, WATER);
       if (j !== -1) { w.set(j, EMPTY); w.set(i, WET_SOIL); return; }
     }
@@ -425,6 +426,11 @@ def(WET_SOIL, {
   name: 'Wet soil', rgb: [70, 38, 14], variance: 10, flags: F_POWDER, density: 2.2,
   update: (x, y, i, w, p) => {
     if (chance(10) && nearHot(x, y, i, w)) { w.set(i, SOIL); return; }
+    // Moisture seeps into touching dry soil, so a watered pile wets through for the seeds.
+    if (chance(3)) {
+      const j = near4(x, y, i, w, SOIL);
+      if (j !== -1) w.set(j, WET_SOIL);
+    }
     fallPowder(x, y, i, w, p, 30, 40);
   },
 });
@@ -452,7 +458,7 @@ def(SEED, {
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     const ny = y + p.gravity;
-    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === WET_SOIL && chance(6)) {
+    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === WET_SOIL && chance(12)) {
       w.set(i, STEM, 6 + randInt(9));
       return;
     }

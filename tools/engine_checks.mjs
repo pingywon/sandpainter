@@ -85,6 +85,16 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
     `stems ${count(s.w, ID.STEM)}, bloom cells ${blooms}`);
 }
 {
+  // Watering a dry pile from above is enough: soil drinks fast, moisture seeps through, seeds sprout.
+  const s = scene();
+  rect(s.w, 40, 78, 80, 88, ID.SOIL);
+  for (let x = 44; x <= 76; x += 4) s.w.set(77 * W + x, ID.SEED);
+  run(s, 400, () => { for (let x = 55; x <= 65; x++) if (Math.random() < 0.25 && s.w.cells[2 * W + x] === 0) s.w.set(2 * W + x, ID.WATER); });
+  run(s, 1200);
+  check('watering a dry soil pile grows flowers', count(s.w, ...ID.BLOOMS) > 0,
+    `stems ${count(s.w, ID.STEM)}, bloom cells ${count(s.w, ...ID.BLOOMS)}`);
+}
+{
   let booms = 0;
   for (let t = 0; t < 10; t++) {
     const s = scene();

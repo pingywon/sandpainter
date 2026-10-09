@@ -140,6 +140,33 @@ export function buildRail(root, app, speeds) {
     windVal.textContent = v === 0 ? 'calm' : `${v > 0 ? '→' : '←'} ${Math.abs(v)}`;
     windRow.classList.toggle('active', v !== 0);
   });
+  /* View */
+  const sv = section('View', 'wheel');
+  const zrow = document.createElement('div');
+  zrow.className = 'row';
+  const zout = button('−', () => app.zoomOut());
+  zout.title = 'Zoom out (or roll the mouse wheel on the canvas)';
+  const zin = button('+', () => app.zoomIn());
+  zin.title = 'Zoom in (or roll the mouse wheel on the canvas)';
+  const zfit = button('1:1', () => app.zoomReset());
+  zfit.title = 'Back to the whole painting';
+  zrow.append(zout, zin, zfit);
+  const zlabel = document.createElement('p');
+  zlabel.className = 'zoomnote';
+  zlabel.textContent = 'whole painting';
+  app.on('view', (z) => {
+    zlabel.textContent = z === 1 ? 'whole painting' : `${z % 1 ? z.toFixed(1) : z}× — middle-drag to move around`;
+    zfit.disabled = z === 1;
+    zout.disabled = z === 1;
+    zin.disabled = z >= 8;
+  });
+  zfit.disabled = true; zout.disabled = true;
+  const fsLabel = () => (document.fullscreenElement ? '<span class="glyph">⤡</span> Exit full screen' : '<span class="glyph">⤢</span> Full screen');
+  const fs = button(fsLabel(), () => app.toggleFullscreen(), 'wide');
+  fs.title = 'The whole game fills the screen. (F, or Esc to leave)';
+  document.addEventListener('fullscreenchange', () => { fs.innerHTML = fsLabel(); });
+  sv.append(zrow, zlabel, fs);
+
   windRow.append(windLabel, wind, windVal);
   const colourLabel = (c) => (c === 'classic' ? '<span class="glyph">▦</span> Single colours' : '<span class="glyph">▨</span> Mixed colours');
   const colours = button(colourLabel(p.colours), () => app.toggleColours(), 'wide');
@@ -180,5 +207,5 @@ export function buildRail(root, app, speeds) {
   const png = button('Download PNG', () => app.exportPng(), 'wide');
   sx.append(png);
 
-  root.append(stool, sb, ss, st, se, sg, sc, sx);
+  root.append(stool, sb, ss, st, se, sg, sv, sc, sx);
 }
