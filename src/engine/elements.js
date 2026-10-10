@@ -458,9 +458,12 @@ def(SEED, {
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     const ny = y + p.gravity;
-    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === WET_SOIL && chance(12)) {
-      w.set(i, STEM, 6 + randInt(9));
-      return;
+    if (ny >= 0 && ny < w.h) {
+      const b = w.cells[i + p.gravity * w.w];
+      if (b === WET_SOIL && chance(12)) { w.set(i, STEM, 6 + randInt(9)); return; }
+      // Spare seed resting on what already grew crumbles away, thinning a thick
+      // sprinkle down to what a normal one would have left.
+      if ((b === STEM || b === PLANT || BLOOMS.includes(b)) && chance(2.5)) { w.set(i, EMPTY); return; }
     }
     fallPowder(x, y, i, w, p, 100, 40);
   },
@@ -468,12 +471,13 @@ def(SEED, {
 
 function bloom(w, j, x, y, p) {
   const id = BLOOMS[randInt(BLOOMS.length)];
+  const open = (c) => c === EMPTY || c === SEED; // petals also push unsprouted seed aside
   w.set(j, id);
   const W = w.w;
-  if (x > 0 && w.cells[j - 1] === EMPTY) w.set(j - 1, id);
-  if (x < W - 1 && w.cells[j + 1] === EMPTY) w.set(j + 1, id);
+  if (x > 0 && open(w.cells[j - 1])) w.set(j - 1, id);
+  if (x < W - 1 && open(w.cells[j + 1])) w.set(j + 1, id);
   const ny = y - p.gravity;
-  if (ny >= 0 && ny < w.h && w.cells[j - p.gravity * W] === EMPTY) w.set(j - p.gravity * W, id);
+  if (ny >= 0 && ny < w.h && open(w.cells[j - p.gravity * W])) w.set(j - p.gravity * W, id);
 }
 
 def(STEM, {
@@ -487,7 +491,8 @@ def(STEM, {
     if (ny < 0 || ny >= w.h) { w.aux[i] = 0; return; }
     const j = i - p.gravity * w.w;
     const above = w.cells[j];
-    if (above !== EMPTY && above !== WATER) { if (chance(5)) w.aux[i] = 0; return; }
+    // Stems also eat their way up through seed, so a too-thick sprinkle still flowers.
+    if (above !== EMPTY && above !== WATER && above !== SEED) { if (chance(5)) w.aux[i] = 0; return; }
     if (!chance(12)) return;
     if (a === 1) bloom(w, j, x, ny, p);
     else w.set(j, STEM, a - 1);

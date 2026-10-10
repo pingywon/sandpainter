@@ -95,6 +95,17 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
     `stems ${count(s.w, ID.STEM)}, bloom cells ${count(s.w, ...ID.BLOOMS)}`);
 }
 {
+  // A too-thick blanket of seed still flowers, and the spare seed crumbles away.
+  const s = scene();
+  rect(s.w, 20, 84, 99, 88, ID.WET_SOIL);
+  rect(s.w, 30, 79, 89, 83, ID.SEED);
+  const n0 = count(s.w, ID.SEED);
+  run(s, 2500);
+  check('a thick blanket of seed still flowers, the spare crumbles away',
+    count(s.w, ...ID.BLOOMS) > 20 && count(s.w, ID.SEED) < n0 * 0.2,
+    `seed ${n0} -> ${count(s.w, ID.SEED)}, bloom cells ${count(s.w, ...ID.BLOOMS)}, stems ${count(s.w, ID.STEM)}`);
+}
+{
   let booms = 0;
   for (let t = 0; t < 10; t++) {
     const s = scene();

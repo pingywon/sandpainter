@@ -297,7 +297,16 @@ function frame(now) {
   if (!params.paused) {
     // Capped so a slow machine or a background tab slows the world down instead of piling up steps.
     acc = Math.min(acc + (dt / STEP_MS) * params.speed, 4 * Math.max(1, params.speed));
-    while (acc >= 1) { step(world, params, spigots); acc -= 1; needsDraw = true; }
+    while (acc >= 1) {
+      step(world, params, spigots);
+      // A held, motionless button keeps pouring: the brush acts as a spigot sized to itself.
+      // Freehand only - a line-tool drag (cursor.from set) paints nothing until release.
+      if (painting && !cursor.from && last) {
+        paintLine(world, last[0], last[1], last[0], last[1], erasing ? EMPTY : params.element, app.brushSize);
+      }
+      acc -= 1;
+      needsDraw = true;
+    }
   } else if (stepRequest) {
     step(world, params, spigots);
     stepRequest = false;
