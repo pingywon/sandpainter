@@ -11,7 +11,7 @@ A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#
 You don't need to install anything.
 
 1. Open the [**Releases** page](https://github.com/pingywon/sandpainter/releases/latest)
-   and download **`Sandpainter-v1.2.0.zip`** (under "Assets").
+   and download **`Sandpainter-v1.3.0.zip`** (under "Assets").
 2. Unzip it.
    - **Windows:** right-click the zip, choose **Extract All**, then **Extract**.
    - **Mac:** double-click the zip.
