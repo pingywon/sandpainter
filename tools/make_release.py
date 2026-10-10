@@ -43,6 +43,10 @@ def main():
         raise SystemExit("usage: python3 tools/make_release.py <version>   e.g. 1.0.0")
     version = sys.argv[1].lstrip("v")
     root = pathlib.Path(__file__).resolve().parent.parent
+    # src/version.js is the one source of truth: it feeds the page footer, and a
+    # release that disagrees with it would ship a page lying about its version.
+    if f"'{version}'" not in (root / "src" / "version.js").read_text():
+        raise SystemExit(f"src/version.js does not say {version} - update the one source of truth first")
     build_standalone.main()
     out = root / "dist" / f"Sandpainter-v{version}.zip"
     out.parent.mkdir(exist_ok=True)

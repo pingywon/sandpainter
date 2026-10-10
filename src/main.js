@@ -2,6 +2,7 @@
  * Bootstrap: builds the world, wires pointer painting, runs the frame loop,
  * and exposes a small `app` API that the UI modules talk to.
  */
+import { VERSION } from './version.js';
 import { World, W, H } from './engine/world.js';
 import { SAND, EMPTY } from './engine/ids.js';
 import { elementName, elementHint } from './engine/elements.js';
@@ -60,6 +61,35 @@ let needsDraw = true;
 /** Mark the world canvas stale; the frame loop repaints it once, instead of every refresh. */
 function touch() { needsDraw = true; }
 
+/* ---------------- zoom ----------------
+ * The world stays one 640x480 bitmap; zoom stretches it with CSS inside the
+ * overflow-hidden plate. (vx, vy) is the world cell at the plate's top-left. */
+const ZOOM_MAX = 8;
+const view = { z: 1, vx: 0, vy: 0 };
+function applyView() {
+  const vw = world.w / view.z, vh = world.h / view.z;
+  view.z = Math.max(1, Math.min(ZOOM_MAX, view.z));
+  view.vx = Math.max(0, Math.min(world.w - vw, view.vx));
+  view.vy = Math.max(0, Math.min(world.h - vh, view.vy));
+  const st = worldCanvas.style;
+  st.width = `${view.z * 100}%`;
+  st.height = `${view.z * 100}%`;
+  st.left = `${(-view.vx / world.w) * view.z * 100}%`;
+  st.top = `${(-view.vy / world.h) * view.z * 100}%`;
+  cursor.setView(view.vx, view.vy, view.z);
+  emit('view', view.z);
+}
+/** Zoom by factor f, keeping the world point (wx, wy) under the same screen spot. */
+function zoomAt(f, wx, wy) {
+  const z0 = view.z;
+  const z1 = Math.max(1, Math.min(ZOOM_MAX, z0 * f));
+  if (z1 === z0) return;
+  view.vx = wx - (wx - view.vx) * (z0 / z1);
+  view.vy = wy - (wy - view.vy) * (z0 / z1);
+  view.z = z1;
+  applyView();
+}
+
 export const app = {
   world, params, spigots, history, renderer, cursor, canvas: worldCanvas,
   on, emit,
@@ -71,6 +101,14 @@ export const app = {
   },
   setSpeed(v) { params.speed = v; emit('speed', v); },
   setTool(t) { params.tool = t; emit('tool', t); },
+  get zoom() { return view.z; },
+  zoomIn() { zoomAt(2, view.vx + world.w / view.z / 2, view.vy + world.h / view.z / 2); },
+  zoomOut() { zoomAt(0.5, view.vx + world.w / view.z / 2, view.vy + world.h / view.z / 2); },
+  zoomReset() { view.z = 1; view.vx = 0; view.vy = 0; applyView(); },
+  toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => { showToast('Full screen is blocked here'); });
+  },
   toggleColours() {
     params.colours = params.colours === 'classic' ? 'mixed' : 'classic';
     renderer.setFlat(params.colours === 'classic');
@@ -116,9 +154,24 @@ function toWorld(ev) {
 
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
+let panning = null; // [lastClientX, lastClientY] during a middle-button drag
+
+plate.addEventListener('wheel', (ev) => {
+  ev.preventDefault();
+  const [wx, wy] = toWorld(ev);
+  zoomAt(ev.deltaY < 0 ? 1.25 : 0.8, wx, wy);
+}, { passive: false });
+
 plate.addEventListener('pointerdown', (ev) => {
   // The toast and paused badge sit inside the plate; capturing their presses would paint under them and swallow the clicks.
   if (ev.target.closest('#toast, #pausedBadge')) return;
+  if (ev.button === 1) {
+    // Middle button drags the view around while zoomed in.
+    ev.preventDefault();
+    plate.setPointerCapture(ev.pointerId);
+    panning = [ev.clientX, ev.clientY];
+    return;
+  }
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
   if (!toastEl.hidden) hideToast();
@@ -140,6 +193,14 @@ plate.addEventListener('pointerdown', (ev) => {
 });
 
 plate.addEventListener('pointermove', (ev) => {
+  if (panning) {
+    const r = worldCanvas.getBoundingClientRect();
+    view.vx -= (ev.clientX - panning[0]) * (world.w / r.width);
+    view.vy -= (ev.clientY - panning[1]) * (world.h / r.height);
+    panning = [ev.clientX, ev.clientY];
+    applyView();
+    return;
+  }
   const [x, y] = toWorld(ev);
   cursor.set(x, y, app.brushSize, true);
   if (!painting) return;
@@ -151,6 +212,11 @@ plate.addEventListener('pointermove', (ev) => {
 });
 
 function endStroke(ev, cancelled = false) {
+  if (panning) {
+    panning = null;
+    try { plate.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
+    return;
+  }
   if (!painting) return;
   painting = false;
   if (cursor.from) {
@@ -339,6 +405,9 @@ shotCopy.addEventListener('click', async () => {
 });
 
 /* ---------------- boot ---------------- */
+document.getElementById('ver').textContent = `Sandpainter v${VERSION}`;
+on('box', (b) => plate.classList.toggle('boxed', b));
+applyView();
 renderer.setFlat(params.colours === 'classic');
 buildTray(document.getElementById('tray'), app);
 buildSpigotBar(spigotBar, app);

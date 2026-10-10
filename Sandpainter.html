@@ -41,7 +41,7 @@
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
   --shadow: 0 30px 80px -30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(245, 165, 36, .08);
-  --topbar: 60px;
+  --topbar: 50px;
   color-scheme: dark;
 }
 
@@ -137,8 +137,8 @@ body {
   height: calc(100% - var(--topbar));
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr) 256px;
-  gap: 22px;
-  padding: 18px 22px 20px;
+  gap: 14px;
+  padding: 8px 14px 12px;
 }
 
 .tray, .rail {
@@ -216,7 +216,7 @@ body {
   max-width: 100%;
   background: var(--frame);
   border-radius: 6px;
-  box-shadow: var(--shadow), inset 0 0 0 1px rgba(245,165,36,.10);
+  box-shadow: var(--shadow);
   overflow: hidden;
   cursor: none;
   touch-action: none;
@@ -225,8 +225,14 @@ body {
 }
 .plate::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), inset 0 -40px 60px -50px rgba(0,0,0,.8);
+  box-shadow: inset 0 -40px 60px -50px rgba(0,0,0,.8);
+  /* The play area's edge, unmissable: solid amber sides; dashed top/bottom while the
+     edges are open (things fall out there), going solid when the box is closed (B). */
+  border: 2px solid var(--amber);
+  border-top-style: dashed;
+  border-bottom-style: dashed;
 }
+.plate.boxed::after { border-style: solid; border-color: var(--amber-2); }
 #world, #cursor {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -323,6 +329,22 @@ body {
 /* paused: the picture dims and a badge says how to resume */
 .plate.is-paused #world { filter: saturate(.45) brightness(.7); }
 #world { transition: filter .2s; }
+
+.zoomnote {
+  margin: 6px 2px 0;
+  font: 400 11px/1.4 var(--font-mono);
+  color: var(--muted);
+}
+.version {
+  position: fixed;
+  right: 10px;
+  bottom: 5px;
+  margin: 0;
+  font: 500 11px/1 var(--font-mono);
+  color: var(--faint);
+  pointer-events: none;
+  z-index: 5;
+}
 .paused-badge {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   padding: 7px 14px; border-radius: 999px; cursor: pointer;
@@ -502,6 +524,8 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
     <aside class="rail" id="rail" aria-label="Controls"></aside>
   </main>
 
+  <p class="version" id="ver"></p>
+
   <dialog id="help" class="help">
     <form method="dialog">
       <h2>Sandpainter</h2>
@@ -517,6 +541,8 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
           <tr><td><kbd>E</kbd> <kbd>R</kbd></td><td>Eraser / Random</td></tr>
           <tr><td><kbd>L</kbd></td><td>Line tool on / off (<kbd>Esc</kbd> drops a half-drawn line)</td></tr>
           <tr><td><kbd>K</kbd></td><td>Single colours (like the original) / mixed colours</td></tr>
+          <tr><td><kbd>F</kbd></td><td>Full screen on / off</td></tr>
+          <tr><td>wheel</td><td>Zoom in and out at the mouse; middle-drag moves around while zoomed</td></tr>
           <tr><td><kbd>G</kbd></td><td>Flip gravity</td></tr>
           <tr><td><kbd>B</kbd></td><td>Open edges / closed box</td></tr>
           <tr><td><kbd>C</kbd></td><td>Clear (press twice)</td></tr>
@@ -544,6 +570,14 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
   <script>
 'use strict';
 const __mods = {};
+/* ---- version.js ---- */
+__mods['version.js'] = (() => {
+/** The one source of truth for the version. The page footer reads it, and
+ * tools/make_release.py refuses to package a release that doesn't match it. */
+const VERSION = '1.3.0';
+return { VERSION };
+})();
+
 /* ---- engine/world.js ---- */
 __mods['engine/world.js'] = (() => {
 /**
@@ -1532,7 +1566,8 @@ def(SOIL, {
   name: 'Soil', group: 'Powders', rgb: [122, 76, 36], variance: 16, flags: F_POWDER, density: 2,
   hint: 'Soaks up water, seeds grow in it when wet',
   update: (x, y, i, w, p) => {
-    if (chance(20)) {
+    // Thirsty: drink before the water can run off the pile.
+    if (chance(60)) {
       const j = near4(x, y, i, w, WATER);
       if (j !== -1) { w.set(j, EMPTY); w.set(i, WET_SOIL); return; }
     }
@@ -1544,6 +1579,11 @@ def(WET_SOIL, {
   name: 'Wet soil', rgb: [70, 38, 14], variance: 10, flags: F_POWDER, density: 2.2,
   update: (x, y, i, w, p) => {
     if (chance(10) && nearHot(x, y, i, w)) { w.set(i, SOIL); return; }
+    // Moisture seeps into touching dry soil, so a watered pile wets through for the seeds.
+    if (chance(3)) {
+      const j = near4(x, y, i, w, SOIL);
+      if (j !== -1) w.set(j, WET_SOIL);
+    }
     fallPowder(x, y, i, w, p, 30, 40);
   },
 });
@@ -1571,7 +1611,7 @@ def(SEED, {
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
     const ny = y + p.gravity;
-    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === WET_SOIL && chance(6)) {
+    if (ny >= 0 && ny < w.h && w.cells[i + p.gravity * w.w] === WET_SOIL && chance(12)) {
       w.set(i, STEM, 6 + randInt(9));
       return;
     }
@@ -2017,6 +2057,12 @@ class Cursor {
     this.scale = 1;
     this.visible = false;
     this.from = null; // [x, y] anchor of a line-tool drag; a preview line is drawn to the cursor
+    this.vx = 0; this.vy = 0; this.z = 1; // zoom view: world cell at the plate's top-left, zoom factor
+  }
+
+  /** Follow the zoom view so the ring sits on the right cell at any zoom. */
+  setView(vx, vy, z) {
+    this.vx = vx; this.vy = vy; this.z = z;
   }
 
   resize(cssW, cssH, worldW) {
@@ -2036,7 +2082,9 @@ class Cursor {
     const c = this.ctx, cv = this.canvas;
     c.clearRect(0, 0, cv.width, cv.height);
     if (!this.visible) return;
-    const s = this.scale;
+    const s = this.scale * this.z;
+    const sx = (x) => (x - this.vx) * s;
+    const sy = (y) => (y - this.vy) * s;
     if (this.from) {
       // Line-tool preview: a ghost of the stroke that painting will make on release.
       const half = this.size <= 2 ? this.size / 2 : 0;
@@ -2046,14 +2094,14 @@ class Cursor {
       c.lineWidth = Math.max(this.size * s, 1.5);
       c.strokeStyle = accent;
       c.beginPath();
-      c.moveTo((this.from[0] + half) * s, (this.from[1] + half) * s);
-      c.lineTo((this.x + half) * s, (this.y + half) * s);
+      c.moveTo(sx(this.from[0] + half), sy(this.from[1] + half));
+      c.lineTo(sx(this.x + half), sy(this.y + half));
       c.stroke();
       c.restore();
     }
     const r = Math.max(this.size * s / 2, 2.5);
-    const px = (this.x + (this.size <= 2 ? this.size / 2 : 0)) * s;
-    const py = (this.y + (this.size <= 2 ? this.size / 2 : 0)) * s;
+    const px = sx(this.x + (this.size <= 2 ? this.size / 2 : 0));
+    const py = sy(this.y + (this.size <= 2 ? this.size / 2 : 0));
     c.lineWidth = Math.max(1, this.dpr);
     c.strokeStyle = 'rgba(0,0,0,0.55)';
     c.beginPath(); c.arc(px, py, r + 1, 0, Math.PI * 2); c.stroke();
@@ -2413,6 +2461,33 @@ function buildRail(root, app, speeds) {
     windVal.textContent = v === 0 ? 'calm' : `${v > 0 ? '→' : '←'} ${Math.abs(v)}`;
     windRow.classList.toggle('active', v !== 0);
   });
+  /* View */
+  const sv = section('View', 'wheel');
+  const zrow = document.createElement('div');
+  zrow.className = 'row';
+  const zout = button('−', () => app.zoomOut());
+  zout.title = 'Zoom out (or roll the mouse wheel on the canvas)';
+  const zin = button('+', () => app.zoomIn());
+  zin.title = 'Zoom in (or roll the mouse wheel on the canvas)';
+  const zfit = button('1:1', () => app.zoomReset());
+  zfit.title = 'Back to the whole painting';
+  zrow.append(zout, zin, zfit);
+  const zlabel = document.createElement('p');
+  zlabel.className = 'zoomnote';
+  zlabel.textContent = 'whole painting';
+  app.on('view', (z) => {
+    zlabel.textContent = z === 1 ? 'whole painting' : `${z % 1 ? z.toFixed(1) : z}× — middle-drag to move around`;
+    zfit.disabled = z === 1;
+    zout.disabled = z === 1;
+    zin.disabled = z >= 8;
+  });
+  zfit.disabled = true; zout.disabled = true;
+  const fsLabel = () => (document.fullscreenElement ? '<span class="glyph">⤡</span> Exit full screen' : '<span class="glyph">⤢</span> Full screen');
+  const fs = button(fsLabel(), () => app.toggleFullscreen(), 'wide');
+  fs.title = 'The whole game fills the screen. (F, or Esc to leave)';
+  document.addEventListener('fullscreenchange', () => { fs.innerHTML = fsLabel(); });
+  sv.append(zrow, zlabel, fs);
+
   windRow.append(windLabel, wind, windVal);
   const colourLabel = (c) => (c === 'classic' ? '<span class="glyph">▦</span> Single colours' : '<span class="glyph">▨</span> Mixed colours');
   const colours = button(colourLabel(p.colours), () => app.toggleColours(), 'wide');
@@ -2453,7 +2528,7 @@ function buildRail(root, app, speeds) {
   const png = button('Download PNG', () => app.exportPng(), 'wide');
   sx.append(png);
 
-  root.append(stool, sb, ss, st, se, sg, sc, sx);
+  root.append(stool, sb, ss, st, se, sg, sv, sc, sx);
 }
 return { buildRail };
 })();
@@ -2563,6 +2638,7 @@ function bindShortcuts(app, speeds) {
       case 'c': case 'C': app.emit('request-clear'); break;
       case 'l': case 'L': app.setTool(p.tool === 'line' ? 'free' : 'line'); break;
       case 'k': case 'K': app.toggleColours(); break;
+      case 'f': case 'F': app.toggleFullscreen(); break;
       case 'Escape': app.emit('cancel-stroke'); break;
       case '-': case '_': app.setSpeed(speeds[Math.max(0, speeds.indexOf(p.speed) - 1)]); break;
       case '=': case '+': app.setSpeed(speeds[Math.min(speeds.length - 1, speeds.indexOf(p.speed) + 1)]); break;
@@ -2584,6 +2660,7 @@ __mods['main.js'] = (() => {
  * Bootstrap: builds the world, wires pointer painting, runs the frame loop,
  * and exposes a small `app` API that the UI modules talk to.
  */
+const { VERSION } = __mods['version.js'];
 const { World, W, H } = __mods['engine/world.js'];
 const { SAND, EMPTY } = __mods['engine/ids.js'];
 const { elementName, elementHint } = __mods['engine/elements.js'];
@@ -2642,6 +2719,35 @@ let needsDraw = true;
 /** Mark the world canvas stale; the frame loop repaints it once, instead of every refresh. */
 function touch() { needsDraw = true; }
 
+/* ---------------- zoom ----------------
+ * The world stays one 640x480 bitmap; zoom stretches it with CSS inside the
+ * overflow-hidden plate. (vx, vy) is the world cell at the plate's top-left. */
+const ZOOM_MAX = 8;
+const view = { z: 1, vx: 0, vy: 0 };
+function applyView() {
+  const vw = world.w / view.z, vh = world.h / view.z;
+  view.z = Math.max(1, Math.min(ZOOM_MAX, view.z));
+  view.vx = Math.max(0, Math.min(world.w - vw, view.vx));
+  view.vy = Math.max(0, Math.min(world.h - vh, view.vy));
+  const st = worldCanvas.style;
+  st.width = `${view.z * 100}%`;
+  st.height = `${view.z * 100}%`;
+  st.left = `${(-view.vx / world.w) * view.z * 100}%`;
+  st.top = `${(-view.vy / world.h) * view.z * 100}%`;
+  cursor.setView(view.vx, view.vy, view.z);
+  emit('view', view.z);
+}
+/** Zoom by factor f, keeping the world point (wx, wy) under the same screen spot. */
+function zoomAt(f, wx, wy) {
+  const z0 = view.z;
+  const z1 = Math.max(1, Math.min(ZOOM_MAX, z0 * f));
+  if (z1 === z0) return;
+  view.vx = wx - (wx - view.vx) * (z0 / z1);
+  view.vy = wy - (wy - view.vy) * (z0 / z1);
+  view.z = z1;
+  applyView();
+}
+
 const app = {
   world, params, spigots, history, renderer, cursor, canvas: worldCanvas,
   on, emit,
@@ -2653,6 +2759,14 @@ const app = {
   },
   setSpeed(v) { params.speed = v; emit('speed', v); },
   setTool(t) { params.tool = t; emit('tool', t); },
+  get zoom() { return view.z; },
+  zoomIn() { zoomAt(2, view.vx + world.w / view.z / 2, view.vy + world.h / view.z / 2); },
+  zoomOut() { zoomAt(0.5, view.vx + world.w / view.z / 2, view.vy + world.h / view.z / 2); },
+  zoomReset() { view.z = 1; view.vx = 0; view.vy = 0; applyView(); },
+  toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => { showToast('Full screen is blocked here'); });
+  },
   toggleColours() {
     params.colours = params.colours === 'classic' ? 'mixed' : 'classic';
     renderer.setFlat(params.colours === 'classic');
@@ -2698,9 +2812,24 @@ function toWorld(ev) {
 
 plate.addEventListener('contextmenu', (e) => e.preventDefault());
 
+let panning = null; // [lastClientX, lastClientY] during a middle-button drag
+
+plate.addEventListener('wheel', (ev) => {
+  ev.preventDefault();
+  const [wx, wy] = toWorld(ev);
+  zoomAt(ev.deltaY < 0 ? 1.25 : 0.8, wx, wy);
+}, { passive: false });
+
 plate.addEventListener('pointerdown', (ev) => {
   // The toast and paused badge sit inside the plate; capturing their presses would paint under them and swallow the clicks.
   if (ev.target.closest('#toast, #pausedBadge')) return;
+  if (ev.button === 1) {
+    // Middle button drags the view around while zoomed in.
+    ev.preventDefault();
+    plate.setPointerCapture(ev.pointerId);
+    panning = [ev.clientX, ev.clientY];
+    return;
+  }
   if (ev.button !== 0 && ev.button !== 2) return;
   ev.preventDefault();
   if (!toastEl.hidden) hideToast();
@@ -2722,6 +2851,14 @@ plate.addEventListener('pointerdown', (ev) => {
 });
 
 plate.addEventListener('pointermove', (ev) => {
+  if (panning) {
+    const r = worldCanvas.getBoundingClientRect();
+    view.vx -= (ev.clientX - panning[0]) * (world.w / r.width);
+    view.vy -= (ev.clientY - panning[1]) * (world.h / r.height);
+    panning = [ev.clientX, ev.clientY];
+    applyView();
+    return;
+  }
   const [x, y] = toWorld(ev);
   cursor.set(x, y, app.brushSize, true);
   if (!painting) return;
@@ -2733,6 +2870,11 @@ plate.addEventListener('pointermove', (ev) => {
 });
 
 function endStroke(ev, cancelled = false) {
+  if (panning) {
+    panning = null;
+    try { plate.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
+    return;
+  }
   if (!painting) return;
   painting = false;
   if (cursor.from) {
@@ -2921,6 +3063,9 @@ shotCopy.addEventListener('click', async () => {
 });
 
 /* ---------------- boot ---------------- */
+document.getElementById('ver').textContent = `Sandpainter v${VERSION}`;
+on('box', (b) => plate.classList.toggle('boxed', b));
+applyView();
 renderer.setFlat(params.colours === 'classic');
 buildTray(document.getElementById('tray'), app);
 buildSpigotBar(spigotBar, app);
