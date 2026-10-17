@@ -10,7 +10,7 @@ import {
 } from './ids.js';
 import {
   near4, near4Flag, nearHot, nearHot8, fallPowder, flowLiquid, riseGas, applyWind,
-  convertNeighbour, produce, spawnFire, tryIgnite, explode, detonate,
+  convertNeighbour, produce, producePush, spawnFire, tryIgnite, explode, detonate,
 } from './behaviors.js';
 
 const {
@@ -226,12 +226,14 @@ def(STEAM, {
 
 def(SPOUT, {
   name: 'Spout', group: 'Producers', rgb: [118, 190, 250], variance: 5, flags: F_STATIC,
-  hint: 'Endless water', update: (x, y, i, w) => { produce(x, y, i, w, WATER, 6); },
+  hint: 'Endless water, springs up even buried',
+  update: (x, y, i, w, p) => { producePush(x, y, i, w, p, WATER, 6); },
 });
 
 def(WELL, {
   name: 'Well', group: 'Producers', rgb: [138, 22, 38], variance: 6, flags: F_STATIC,
-  hint: 'Endless oil', update: (x, y, i, w) => { produce(x, y, i, w, OIL, 8); },
+  hint: 'Endless oil, gushes up even buried',
+  update: (x, y, i, w, p) => { producePush(x, y, i, w, p, OIL, 8); },
 });
 
 def(TORCH, {
@@ -457,10 +459,21 @@ def(SEED, {
   hint: 'Sprouts a flower when it lands on wet soil',
   update: (x, y, i, w, p) => {
     if (tryIgnite(x, y, i, w)) return;
+    // Water trickles down through seed, so a heap of seed no longer waterproofs the soil under it.
+    const ay = y - p.gravity;
+    if (ay >= 0 && ay < w.h && w.cells[i - p.gravity * w.w] === WATER && chance(30)) {
+      w.swap(i, i - p.gravity * w.w);
+      return;
+    }
     const ny = y + p.gravity;
     if (ny >= 0 && ny < w.h) {
       const b = w.cells[i + p.gravity * w.w];
       if (b === WET_SOIL && chance(12)) { w.set(i, STEM, 6 + randInt(9)); return; }
+      // On dry soil with water touching it anywhere, the drink goes straight down into the bed.
+      if (b === SOIL && chance(12)) {
+        const j = near4(x, y, i, w, WATER);
+        if (j !== -1) { w.set(j, EMPTY); w.set(i + p.gravity * w.w, WET_SOIL); return; }
+      }
       // Spare seed resting on what already grew crumbles away, thinning a thick
       // sprinkle down to what a normal one would have left.
       if ((b === STEM || b === PLANT || BLOOMS.includes(b)) && chance(2.5)) { w.set(i, EMPTY); return; }

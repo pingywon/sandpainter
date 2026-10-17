@@ -12,6 +12,8 @@ import { BRUSH_SIZES, paintLine } from './engine/brush.js';
 import { History } from './engine/history.js';
 import * as storage from './engine/storage.js';
 import { Renderer, Cursor } from './render/renderer.js';
+import { presetByKey } from './presets/scenes.js';
+import { buildPresetsDialog } from './ui/presets.js';
 import { buildTray } from './ui/palette.js';
 import { buildRail } from './ui/controls.js';
 import { buildSpigotBar } from './ui/spigotBar.js';
@@ -133,6 +135,28 @@ export const app = {
     return ok;
   },
   exportPng() { openSnapshot(); },
+  /** True when nothing is painted (loading a preset over it needs no asking). */
+  worldEmpty() {
+    const c = world.cells;
+    for (let i = 0; i < c.length; i++) if (c[i] !== 0) return false;
+    return true;
+  },
+  /** Swap in a showcase scene, live, with its own stage settings. Undo restores the painting. */
+  loadPreset(key) {
+    const sc = presetByKey(key);
+    if (!sc) return false;
+    history.push(world);
+    world.clear();
+    sc.build(world);
+    if (params.box !== !!sc.settings.box) { params.box = !!sc.settings.box; emit('box', params.box); }
+    if (params.gravity !== 1) { params.gravity = 1; emit('gravity', 1); }
+    this.setWind(sc.settings.wind || 0);
+    if (params.paused) { params.paused = false; emit('paused', false); }
+    this.zoomReset();
+    touch();
+    emit('preset', key);
+    return true;
+  },
   hasAutosave() { return storage.info('auto') !== null; },
   toast(msg, actions) { showToast(msg, actions); },
   /** Run n simulation steps synchronously (used by tests and the step button). */
@@ -418,6 +442,8 @@ document.getElementById('ver').textContent = `Sandpainter v${VERSION}`;
 on('box', (b) => plate.classList.toggle('boxed', b));
 applyView();
 renderer.setFlat(params.colours === 'classic');
+const presetsDialog = buildPresetsDialog(app);
+app.openPresets = () => presetsDialog.open();
 buildTray(document.getElementById('tray'), app);
 buildSpigotBar(spigotBar, app);
 buildRail(document.getElementById('rail'), app, SPEEDS);

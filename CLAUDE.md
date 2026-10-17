@@ -36,6 +36,28 @@ Keep it current when something non-obvious is learned.
   bars with 22 px-tall hit areas, and the chip never fades as a whole. On screens under 560 px
   they sit in four even columns because absolutely placed chips overlap there.
 
+- **Preset gallery (v1.4.0, owner: "make it a whole thing, presets with thumbnails").**
+  Eight scenes in `src/presets/scenes.js` (pure builders painting the world + per-scene
+  `settings: { box, wind }` and a `ticks` photo moment). `src/ui/presets.js` is the dialog;
+  `app.loadPreset(key)` pushes undo, clears, builds, applies settings, resets zoom/gravity
+  and unpauses. Loading over a painting asks first (owner's pick); an empty canvas loads
+  silently. Cards and the guide's preset tour use GENERATED 320x240 data URIs:
+  `node --experimental-websocket tools/preset_thumbs.mjs && python3 tools/finish_thumbs.py`
+  then rebuild the one-file game. `tools/ui_checks.mjs` drives the gallery with real mouse
+  events. Scene gotchas: lava never rises, so the volcano is fed by a dripping "sky island"
+  clone slab and overflows; rain scenes need floor drains or the world fills; a staged fire
+  for the oil-strike card lives in the TOOL (`EXTRA`), not the scene.
+- **Buried producers gush (v1.4.0, owner: "the well should project oil up").**
+  `producePush()` in behaviors.js: with no empty neighbour a well/spout forces its fluid up
+  against gravity through anything loose, full strength at any depth — through powder it
+  erupts at the surface (shoving the column just bulges the ground), through pure liquid it
+  enters at the bottom and bubbles. Statics cap it; a closed box with no gap caps it.
+- **The carefree garden (v1.4.0, owner: "tired of over-soiling/watering/seeding").**
+  Water TRICKLES DOWN THROUGH SEED (seed swaps with water above, 30%) — before this a seed
+  heap waterproofed its own bed, the real cause of "no flowers". Seed on dry soil touching
+  water wicks the drink into the cell below (12%). Dry soil with no water anywhere still
+  grows nothing (owner's pick: "forgiving, but water still matters").
+
 ## Run
 
 ES modules need http, not `file://`.

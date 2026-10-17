@@ -281,6 +281,54 @@ export function produce(x, y, i, w, id, pct, aux = 0) {
   return true;
 }
 
+/** A cell a gusher can push aside: any powder, liquid or gas. Built things cap it. */
+function loose(c) {
+  return c !== EMPTY && (FLAGS[c] & (1 | F_LIQUID | F_GAS)) !== 0;
+}
+
+/**
+ * produce() for wells and spouts that also works buried or drowned: with no empty
+ * neighbour, the fluid forces its way up (against gravity) through the loose column
+ * above, at full strength however deep it sits. Through powder it erupts at the
+ * surface, like a gusher finding a crack; through pure liquid it shoves the column
+ * up one and enters at the bottom, so it visibly bubbles. Anything static in the
+ * column (wall, set concrete, ice, wax...) caps it.
+ */
+export function producePush(x, y, i, w, p, id, pct, aux = 0) {
+  if (!chance(pct)) return false;
+  const j = emptyNeighbour(x, y, i, w);
+  if (j !== -1) {
+    w.set(j, id, aux);
+    w.stamp[j] = w.parity;
+    return true;
+  }
+  const up = -p.gravity, W = w.w;
+  let ny = y + up, k = i + up * W, steps = 0, powder = false;
+  while (ny >= 0 && ny < w.h && loose(w.cells[k])) {
+    if (FLAGS[w.cells[k]] & 1) powder = true;
+    ny += up; k += up * W; steps++;
+  }
+  if (steps === 0) return false; // capped by something solid right above
+  if (ny < 0 || ny >= w.h) {
+    if (p.box || powder) return false; // nowhere for the column to go
+    k -= up * W;
+    w.set(k, EMPTY); // open edge: the topmost liquid cell is pushed off the world
+  } else if (w.cells[k] !== EMPTY) {
+    return false; // capped higher up
+  }
+  if (powder) {
+    // Erupt where the ground breaks, straight into the gap above the bed.
+    w.set(k, id, aux);
+    w.stamp[k] = w.parity;
+    return true;
+  }
+  const slot = i + up * W;
+  for (let m = k; m !== slot; m -= up * W) w.move(m - up * W, m);
+  w.set(slot, id, aux);
+  w.stamp[slot] = w.parity;
+  return true;
+}
+
 export function spawnFire(w, i) {
   w.set(i, FIRE, 12 + randInt(20));
 }
