@@ -56,6 +56,12 @@ export function buildRail(root, app, speeds) {
   root.innerHTML = '';
   const p = app.params;
 
+  /* Presets */
+  const sp = section('Presets');
+  const presets = button('<span class="glyph">✦</span> Open the gallery', () => app.openPresets(), 'wide');
+  presets.title = 'Eight ready-made scenes that load live: gushers, volcanos, gardens, demolitions.';
+  sp.append(presets);
+
   /* Tool */
   const stool = section('Tool', 'l');
   const tool = segmented(['free', 'line'], ['✏ Free', '╱ Line'], p.tool, (v) => app.setTool(v), 'Drawing tool');
@@ -207,5 +213,5 @@ export function buildRail(root, app, speeds) {
   const png = button('Download PNG', () => app.exportPng(), 'wide');
   sx.append(png);
 
-  root.append(stool, sb, ss, st, se, sg, sv, sc, sx);
+  root.append(sp, stool, sb, ss, st, se, sg, sv, sc, sx);
 }

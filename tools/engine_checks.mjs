@@ -335,6 +335,56 @@ for (const [soil, want] of [[ID.WET_SOIL, true], [ID.SOIL, false]]) {
   check('oil poured onto water spreads out flat', low - top <= 3, `oil surface varies by ${low - top} px across the basin`);
 }
 
+{
+  // A buried well gushes: oil forces up through 30 px of sand and surfaces.
+  const s = scene();
+  rect(s.w, 0, 87, 119, 88, ID.WALL);
+  rect(s.w, 18, 40, 19, 88, ID.WALL); rect(s.w, 101, 40, 102, 88, ID.WALL);
+  rect(s.w, 20, 54, 100, 86, ID.SAND);
+  rect(s.w, 55, 84, 65, 86, ID.WELL);
+  run(s, 500);
+  let surfaced = 0;
+  for (let i = 0; i < 54 * W; i++) if (s.w.cells[i] === ID.OIL) surfaced++;
+  check('a well buried under sand gushes oil to the surface', surfaced > 40,
+    `${surfaced} oil cells above the sand bed, ${count(s.w, ID.OIL)} total`);
+}
+{
+  // A drowned well bubbles oil up through the pond; the oil floats on top.
+  const s = scene();
+  s.p.box = true;
+  rect(s.w, 55, 86, 65, 88, ID.WELL);
+  rect(s.w, 0, 55, 119, 85, ID.WATER);
+  run(s, 600);
+  const oil = count(s.w, ID.OIL);
+  check('a drowned well bubbles oil up to float on the pond', oil > 60 && meanY(s.w, ID.OIL) < meanY(s.w, ID.WATER),
+    `${oil} oil cells, oil y=${meanY(s.w, ID.OIL).toFixed(1)}, water y=${meanY(s.w, ID.WATER).toFixed(1)}`);
+}
+{
+  // A buried spout springs water the same way.
+  const s = scene();
+  rect(s.w, 0, 87, 119, 88, ID.WALL);
+  rect(s.w, 20, 54, 100, 86, ID.SOIL);
+  rect(s.w, 55, 84, 65, 86, ID.SPOUT);
+  run(s, 600);
+  const wet = count(s.w, ID.WET_SOIL);
+  let surfaced = 0;
+  for (let i = 0; i < 54 * W; i++) if (s.w.cells[i] === ID.WATER) surfaced++;
+  check('a buried spout springs water up through the soil', surfaced > 20 || wet > 150,
+    `${surfaced} water cells above the bed, ${wet} wet soil`);
+}
+{
+  // The carefree garden: dry soil, a thick heap of seed, water dumped on top of
+  // the heap. The water trickles through the seed, wets the bed, flowers come.
+  const s = scene();
+  rect(s.w, 30, 80, 90, 88, ID.SOIL);
+  rect(s.w, 45, 74, 75, 79, ID.SEED);
+  rect(s.w, 45, 64, 75, 71, ID.WATER);
+  run(s, 2500);
+  const blooms = count(s.w, ...ID.BLOOMS);
+  check('water poured on a thick seed heap over dry soil still makes flowers', blooms >= 6,
+    `${blooms} bloom cells, ${count(s.w, ID.STEM)} stems, ${count(s.w, ID.SEED)} seeds left`);
+}
+
 if (failed) {
   console.log(`\n${failed} check(s) failed: the element guide needs updating`);
   process.exit(1);

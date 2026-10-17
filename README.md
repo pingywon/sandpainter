@@ -2,7 +2,9 @@
 
 A falling-sand painting toy. Four spigots pour from the top, and you paint into the
 mix: sand, water, oil, lava, ice, plants, acid, explosives and more. 26 elements to
-paint, 9 more they turn into, and they all react with each other.
+paint, 9 more they turn into, and they all react with each other. Eight ready-made
+**[preset scenes](#the-eight-presets)** — gushers, volcanos, gardens, demolitions —
+load live at the click of a card.
 
 A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#screenshots).**
 
@@ -11,7 +13,7 @@ A from-scratch remake of Artsology's Sandpainting Game v2. **[See screenshots](#
 You don't need to install anything.
 
 1. Open the [**Releases** page](https://github.com/pingywon/sandpainter/releases/latest)
-   and download **`Sandpainter-v1.3.0.zip`** (under "Assets").
+   and download **`Sandpainter-v1.4.0.zip`** (under "Assets").
 2. Unzip it.
    - **Windows:** right-click the zip, choose **Extract All**, then **Extract**.
    - **Mac:** double-click the zip.
@@ -24,6 +26,20 @@ If you already have this repository on your computer, skip the zip: double-click
 
 **Your saves** (the three save slots and the auto-save) are kept inside the browser you
 played in. If you open the game in a different browser, they won't be there.
+
+## The eight presets
+
+The **Presets** button on the right-hand panel opens a gallery of eight ready-made scenes.
+Each one loads already in motion, brings its own settings (closed box, wind), and asks
+before replacing a painting — Undo brings yours back. Every picture is the real scene,
+photographed mid-action.
+
+| | |
+|---|---|
+| ![Oil Strike](docs/screenshots/preset-oil-strike.png) **Oil Strike** — three buried wells force oil up into the valley; when the pool reaches the torch, the whole strike catches. | ![Volcano Island](docs/screenshots/preset-volcano.png) **Volcano Island** — a sky island drips endless lava into the crater; the sea turns every river to new rock. |
+| ![Secret Garden](docs/screenshots/preset-secret-garden.png) **Secret Garden** — spout clouds rain on seeded beds; flowers in five colours, drains keep it from flooding. | ![Demolition Day](docs/screenshots/preset-demolition.png) **Demolition Day** — charges in every basement, a fuse to a marked post. You light it. |
+| ![Candle Shrine](docs/screenshots/preset-candle-shrine.png) **Candle Shrine** — eternal flames melt their candles drip by drip; the ice pillars slowly lose. | ![Frozen Falls](docs/screenshots/preset-frozen-falls.png) **Frozen Falls** — cryo freezes the falls mid-air, salt eats channels, snow drifts on the far side. |
+| ![Clone Factory](docs/screenshots/preset-clone-factory.png) **Clone Factory** — four fed clones pour sand, water, lava and snow forever; a methane maker pops against its sky flame. | ![Storm in a Box](docs/screenshots/preset-storm-box.png) **Storm in a Box** — a sealed water cycle: a hot rock boils the pond, steam rains back, the wind feeds a thundering sky flame. |
 
 ## Learn the elements
 
@@ -57,8 +73,9 @@ keeps everything.
 **The four spigots** above the canvas start switched off. Click a spigot's name to choose
 what it pours, and any of its bars to start it and set how hard. **OFF** stops it again.
 
-The panel on the right also has a wind slider, three save slots and a **Download PNG**
-button for a picture of your painting.
+The panel on the right also has the **Presets** gallery, a wind slider, three save slots
+and a **Download PNG** button for a picture of your painting. The **Guide** button in the
+top bar opens the element guide in its own tab.
 
 ## Screenshots
 
@@ -184,10 +201,19 @@ node --experimental-websocket tools/screenshots.mjs          # all of them
 node --experimental-websocket tools/screenshots.mjs 02 05    # just these
 ```
 
+Check the preset gallery and controls in a real browser, and retake the preset
+pictures after changing a scene in `src/presets/scenes.js`:
+
+```bash
+node --experimental-websocket tools/ui_checks.mjs    # gallery, confirm, undo, Guide button
+node --experimental-websocket tools/preset_thumbs.mjs && python3 tools/finish_thumbs.py
+python3 tools/build_standalone.py                    # re-embed the new cards
+```
+
 Make a release zip (it lands in `dist/`):
 
 ```bash
-python3 tools/make_release.py 1.2.0
+python3 tools/make_release.py 1.4.0
 ```
 
 ### What's where
@@ -208,7 +234,9 @@ src/engine/brush.js      painting
 src/engine/history.js    undo
 src/engine/storage.js    save slots and PNG pictures
 src/render/renderer.js   drawing the grid to the screen
-src/ui/*.js              the element tray, right-hand panel, spigot bar, keyboard keys
+src/presets/scenes.js    the eight preset scenes and their stage settings
+src/presets/thumbs.js    the gallery's pictures (generated, do not edit by hand)
+src/ui/*.js              the element tray, right-hand panel, preset gallery, spigot bar, keys
 tools/                   build scripts, engine checks, screenshot maker, embedded fonts
 docs/screenshots/        the pictures in this README
 dist/sandpainter.html    the version published as a claude.ai artifact

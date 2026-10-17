@@ -80,7 +80,7 @@ body {
 .topbar {
   height: var(--topbar);
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 20px;
   padding: 0 22px 0 24px;
@@ -108,6 +108,13 @@ body {
   transition: color .15s, border-color .15s, transform .15s;
 }
 .iconbtn:hover { color: var(--amber); border-color: var(--amber); transform: translateY(-1px); }
+.pillbtn {
+  height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 15px;
+  border: 1px solid var(--line-2); color: var(--muted); text-decoration: none;
+  font: 500 12px var(--font-mono); letter-spacing: .03em;
+  transition: color .15s, border-color .15s, transform .15s;
+}
+.pillbtn:hover { color: var(--amber); border-color: var(--amber); transform: translateY(-1px); }
 
 /* --------------------------------------------------------------------------
    stage
@@ -415,6 +422,28 @@ input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-off
 .help .fine { font-size: 11.5px; color: var(--faint); }
 .help a { color: var(--amber-2); text-underline-offset: 3px; }
 .shot { width: min(92vw, 720px); }
+
+/* preset gallery */
+.presets { width: min(94vw, 780px); }
+.preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.preset-card {
+  display: flex; flex-direction: column; padding: 0; overflow: hidden; cursor: pointer;
+  text-align: left; background: transparent; color: var(--text);
+  border: 1px solid var(--line-2); border-radius: 10px;
+  font: 400 12px var(--font-mono);
+  transition: border-color .15s, transform .15s;
+}
+.preset-card:hover { border-color: var(--amber); transform: translateY(-1px); }
+.preset-card img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; background: var(--frame); border-bottom: 1px solid var(--line); }
+.preset-card b { padding: 8px 10px 0; font-size: 12px; }
+.preset-card span { padding: 3px 10px 9px; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
+.preset-grid.dimmed { opacity: .35; pointer-events: none; }
+.preset-confirm { border: 1px solid var(--amber); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.preset-confirm p { margin: 0 0 10px; color: var(--text); }
+.preset-confirm .row { display: flex; gap: 8px; }
+@media (max-width: 700px) {
+  .preset-grid { grid-template-columns: repeat(2, 1fr); }
+}
 .shot img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; border-radius: 6px; background: var(--frame); box-shadow: 0 0 0 1px rgba(245,165,36,.15); margin-bottom: 12px; }
 .shot .row .btn { text-decoration: none; }
 
